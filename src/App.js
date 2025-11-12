@@ -1,25 +1,40 @@
-import logo from './logo.svg';
-import './App.css';
+// src/App.js
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Navbar from "./components/Navbar";
+import Home from "./routes/Home";
+import Search from "./routes/Search";
+import Profile from "./routes/Profile";
+import Artwork from "./routes/Artwork";
+import Upload from "./routes/Upload";
+import Login from "./routes/Login";
+import RequireKnownUser from "./components/RequireKnownUser";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./styles/globals.css";
 
-function App() {
+const qc = new QueryClient();
+
+export default function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <QueryClientProvider client={qc}>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/u/:username" element={<Profile />} />
+          <Route path="/art/:slugOrId" element={<Artwork />} />
+          <Route
+            path="/upload"
+            element={
+              <RequireKnownUser>
+                <Upload />
+              </RequireKnownUser>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
-
-export default App;
