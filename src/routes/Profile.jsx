@@ -45,12 +45,19 @@ export default function Profile() {
     data: arts = [],
     isLoading: artsLoading,
     isError: artsError,
+    error: artsErr,
   } = useQuery({
     queryKey: ["arts", user?.uid],
     queryFn: () => getUserArtworks(user.uid),
     enabled: !!user?.uid,
     retry: false,
+    staleTime: 0, // תמיד תשאל מחדש
   });
+  
+  console.log('🎨 Profile - User UID:', user?.uid);
+  console.log('🎨 Profile - Artworks:', arts.length, 'artworks');
+  console.log('🎨 Profile - Loading:', artsLoading, 'Error:', artsError);
+  if (artsErr) console.error('🎨 Profile - Error details:', artsErr);
 
   // טוען פוסטים של המשתמש
   const {
@@ -138,7 +145,7 @@ export default function Profile() {
     <div className="container py-4">
       <header className="d-flex align-items-center gap-3 mb-3">
         <img
-          src={user.avatarUrl || "https://placehold.co/96x96?text=👤"}
+          src={user.avatarUrl || currentUser?.photoURL || "https://placehold.co/96x96?text=👤"}
           className="rounded-circle border"
           alt={`${user.displayName || user.username} avatar`}
           width={96}

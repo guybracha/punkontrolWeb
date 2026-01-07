@@ -4,6 +4,7 @@ import { addDoc, collection, serverTimestamp, doc, updateDoc, getDoc } from "fir
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import slugify from "../lib/slugify";
 import { createPost } from "../services/posts.api";
+import "../styles/Upload.css";
 
 // מזהי הקטגוריות התקניים למסד (כמו שסיכמנו)
 const CATEGORY_IDS = [
@@ -38,6 +39,17 @@ function pickExt(file) {
   return "jpg";
 }
 
+// רשימת תגיות פופולריות להצעות
+const POPULAR_TAGS = [
+  "אמנות דיגיטלית", "ציור", "איור", "אנימציה", "קומיקס", "מנגה", "אנימה",
+  "פנטזיה", "מדע בדיוני", "אימה", "רומנטיקה", "הרפתקאות", 
+  "דמויות", "נוף", "פורטרט", "מופשט", "ריאליסטי", "סקיצה",
+  "צבעי מים", "שמן", "אקריליק", "עיפרון", "דיגיטל",
+  "3D", "פיקסל ארט", "וקטור", "פוטומניפולציה",
+  "fan art", "fanart", "fantasy", "original character", "OC", "commission", "WIP",
+  "digital art", "illustration", "painting", "sketch", "character design"
+];
+
 export default function Upload(){
   const [mode, setMode] = useState("art"); // "art" או "post"
   const [postType, setPostType] = useState("text"); // "text", "art", "comic"
@@ -49,6 +61,10 @@ export default function Upload(){
   const [err, setErr] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useState(null)[0];
+  const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [currentTagInput, setCurrentTagInput] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   // פונקציה ליצירת פוסט (Tumblr-style)
   async function handlePostSubmit(e) {
@@ -91,11 +107,17 @@ export default function Upload(){
     e.preventDefault();
     setErr("");
     const u = auth.currentUser;
+    
+    console.log('🔐 Current user:', u);
+    console.log('📧 User email:', u?.email);
+    console.log('🆔 User UID:', u?.uid);
+    
     if (!u) return setErr("צריך להתחבר");
     if (files.length === 0) return setErr("בחר/י תמונה");
     if (!form.title.trim()) return setErr("כותרת היא חובה");
 
-    const categories = normalizeCategories(form.categoriesText);
+    // השתמש בקטגוריות שנבחרו במקום הטקסט
+    const categories = selectedCategories.length > 0 ? selectedCategories : normalizeCategories(form.categoriesText);
     const ageRestricted = !!form.ageRestricted;
     const cats = ageRestricted
       ? Array.from(new Set([...categories, "erotic-18"]))
@@ -128,23 +150,87 @@ export default function Upload(){
         createdAt: serverTimestamp()
       });
 
+      console.log('📄 Document created:', docRef.id);
+
       // העלאה ל-Storage (שומר סיומת קובץ אמיתית)
       const ext = pickExt(files[0]);
       const path = `artworks/${u.uid}/${docRef.id}.${ext}`;
-      await uploadBytes(ref(storage, path), files[0]);
-      const url = await getDownloadURL(ref(storage, path));
+      
+      console.log('📤 Uploading to path:', path);
+      console.log('📦 File size:', files[0].size, 'bytes');
+      
+      // נסה עם metadata מפורש
+      const metadata = {
+        contentType: files[0].type || 'image/png',
+        customMetadata: {
+          uploadedBy: u.uid
+        }
+      };
+      
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, files[0], metadata);
+      
+      console.log('✅ Upload successful!');
+      
+      const url = await getDownloadURL(storageRef);
+      
+      console.log('🔗 Download URL:', url);
+      
       await updateDoc(doc(db,"artworks", docRef.id), { imageUrl: url });
 
-      window.location.assign(`/art/${docRef.id}`);
+      window.location.assign(`/art/${slug}`);
     } catch(e){
-      console.error(e);
-      setErr("שגיאה בהעלאה");
+      console.error('❌ Error details:', e);
+      console.error('❌ Error code:', e.code);
+      console.error('❌ Error message:', e.message);
+      setErr("שגיאה בהעלאה: " + (e.message || "לא ידוע"));
     } finally{
       setSaving(false);
     }
   }
 
   const onSubmit = mode === "post" ? handlePostSubmit : handleArtworkSubmit;
+
+  // טיפול בשדה התגיות עם autocomplete
+  const handleTagsChange = (value) => {
+    setForm(f => ({ ...f, tags: value }));
+    
+    // מצא את התגית האחרונה שהמשתמש מקליד
+    const tags = value.split(",");
+    const currentTag = tags[tags.length - 1].trim();
+    setCurrentTagInput(currentTag);
+    
+    console.log('Current tag:', currentTag); // Debug
+    
+    if (currentTag.length >= 1) {
+      // סינון התגיות לפי הקלט הנוכחי
+      const filtered = POPULAR_TAGS.filter(tag => 
+        tag.toLowerCase().includes(currentTag.toLowerCase())
+      ).slice(0, 8); // מקסימום 8 הצעות
+      
+      console.log('Filtered tags:', filtered); // Debug
+      
+      setTagSuggestions(filtered);
+      setShowTagSuggestions(filtered.length > 0);
+    } else {
+      // אם השדה ריק או רק פסיק, הצג את כל ההצעות
+      const topTags = POPULAR_TAGS.slice(0, 10);
+      setTagSuggestions(topTags);
+      setShowTagSuggestions(true);
+    }
+  };
+
+  // הוספת תגית מוצעת
+  const selectTag = (tag) => {
+    const tags = form.tags.split(",").map(t => t.trim()).filter(Boolean);
+    tags.pop(); // הסר את התגית הנוכחית שלא הושלמה
+    tags.push(tag);
+    setForm(f => ({ ...f, tags: tags.join(", ") + ", " }));
+    setShowTagSuggestions(false);
+    setCurrentTagInput("");
+    // החזר פוקוס לשדה הקלט
+    document.getElementById('tagsInput')?.focus();
+  };
 
   // הוספת תמונה למיקום הנוכחי בטקסט (רק במצב פוסט)
   const insertImageAtCursor = (imageIndex) => {
@@ -166,198 +252,342 @@ export default function Upload(){
     }, 0);
   };
 
+  // טיפול בבחירת קטגוריות
+  const toggleCategory = (categoryId) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(categoryId)) {
+        // הסר קטגוריה
+        return prev.filter(c => c !== categoryId);
+      } else {
+        // הוסף קטגוריה
+        return [...prev, categoryId];
+      }
+    });
+  };
+
   return (
-    <div className="container py-4" style={{maxWidth:720}}>
-      <h1 className="mb-3">העלאה</h1>
-      {err && <div className="alert alert-danger">{err}</div>}
+    <div className="upload-container">
+      <div className="upload-header">
+        <h1>✨ צור משהו מדהים</h1>
+        <p>שתף את היצירתיות שלך עם העולם</p>
+      </div>
+
+      {err && (
+        <div className="alert-modern alert-error">
+          <span>⚠️</span>
+          <span>{err}</span>
+        </div>
+      )}
 
       {/* בורר מצב: Artwork או Post */}
-      <div className="btn-group mb-4 w-100" role="group">
-        <button
-          type="button"
-          className={`btn ${mode === "art" ? "btn-primary" : "btn-outline-primary"}`}
+      <div className="mode-selector">
+        <div
+          className={`mode-card ${mode === "art" ? "active" : ""}`}
           onClick={() => setMode("art")}
         >
-          🎨 יצירה אמנותית
-        </button>
-        <button
-          type="button"
-          className={`btn ${mode === "post" ? "btn-primary" : "btn-outline-primary"}`}
+          <span className="mode-icon">🎨</span>
+          <h3 className="mode-title">יצירה אמנותית</h3>
+          <p className="mode-description">העלה ציור, דיגיטל ארט או אמנות מסורתית</p>
+        </div>
+        <div
+          className={`mode-card ${mode === "post" ? "active" : ""}`}
           onClick={() => setMode("post")}
         >
-          📝 פוסט
-        </button>
+          <span className="mode-icon">📝</span>
+          <h3 className="mode-title">פוסט</h3>
+          <p className="mode-description">שתף סיפור, מחשבות או אוסף תמונות</p>
+        </div>
       </div>
 
       {/* סוג פוסט (רק במצב post) */}
       {mode === "post" && (
-        <div className="mb-3">
-          <label className="form-label">סוג פוסט</label>
-          <select
-            className="form-select"
-            value={postType}
-            onChange={(e) => setPostType(e.target.value)}
+        <div className="post-type-selector">
+          <button
+            type="button"
+            className={`post-type-btn ${postType === "text" ? "active" : ""}`}
+            onClick={() => setPostType("text")}
           >
-            <option value="text">טקסט</option>
-            <option value="art">אמנות</option>
-            <option value="comic">קומיקס</option>
-          </select>
+            📄 טקסט
+          </button>
+          <button
+            type="button"
+            className={`post-type-btn ${postType === "art" ? "active" : ""}`}
+            onClick={() => setPostType("art")}
+          >
+            🖼️ אמנות
+          </button>
+          <button
+            type="button"
+            className={`post-type-btn ${postType === "comic" ? "active" : ""}`}
+            onClick={() => setPostType("comic")}
+          >
+            📚 קומיקס
+          </button>
         </div>
       )}
 
-      <form className="vstack gap-3" onSubmit={onSubmit}>
-        <div>
-          <label className="form-label fw-bold fs-5">כותרת *</label>
+      <form className="upload-form-card" onSubmit={onSubmit}>
+        <div className="form-group-modern">
+          <label className="form-label-modern">
+            <span className="form-label-icon">✍️</span>
+            כותרת *
+          </label>
           <input 
-            className="form-control form-control-lg border-0 border-bottom rounded-0 px-0" 
+            className="form-input-modern form-input-title" 
             placeholder={mode === "post" ? "כתוב כותרת מעניינת..." : "שם היצירה"}
-            style={{ fontSize: mode === "post" ? "1.5rem" : "1.25rem", fontWeight: mode === "post" ? "600" : "normal" }}
             value={form.title}
-            onChange={e=>setForm(f=>({...f, title:e.target.value}))}/>
+            onChange={e=>setForm(f=>({...f, title:e.target.value}))}
+          />
         </div>
 
         {mode === "post" ? (
           // עורך בסגנון בלוג לפוסטים
-          <div className="position-relative">
-            <label className="form-label fw-bold">תוכן הפוסט</label>
+          <div className="form-group-modern">
+            <label className="form-label-modern">
+              <span className="form-label-icon">📖</span>
+              תוכן הפוסט
+            </label>
             <textarea 
               id="postContent"
-              className="form-control border-1 p-3" 
-              rows="15"
-              placeholder="ספר את הסיפור שלך... &#10;&#10;אתה יכול להוסיף תמונות מהגלריה למטה או פשוט לכתוב טקסט חופשי."
-              style={{ 
-                fontSize: "1.1rem", 
-                lineHeight: "1.8",
-                minHeight: "400px",
-                resize: "vertical"
-              }}
+              className="form-textarea-modern form-textarea-post" 
+              placeholder="ספר את הסיפור שלך...&#10;&#10;אתה יכול להוסיף תמונות מהגלריה למטה או פשוט לכתוב טקסט חופשי."
               value={form.description}
-              onChange={e=>setForm(f=>({...f, description:e.target.value}))}/>
+              onChange={e=>setForm(f=>({...f, description:e.target.value}))}
+            />
             
-            {/* כלי עזר לעריכה */}
-            <div className="text-muted small mt-2">
-              💡 <strong>טיפ:</strong> השתמש ב-[תמונה X] כדי לסמן היכן תופיע כל תמונה בתוך הטקסט
+            <div className="info-box info-box-tip">
+              <span className="info-box-icon">💡</span>
+              <div className="info-box-content">
+                <div className="info-box-title">טיפ מקצועי</div>
+                <p className="info-box-text">השתמש ב-[תמונה X] כדי לסמן היכן תופיע כל תמונה בתוך הטקסט</p>
+              </div>
             </div>
           </div>
         ) : (
           // שדה תיאור רגיל ל-artwork
-          <div>
-            <label className="form-label">תיאור</label>
-            <textarea className="form-control" rows="5"
+          <div className="form-group-modern">
+            <label className="form-label-modern">
+              <span className="form-label-icon">📝</span>
+              תיאור
+            </label>
+            <textarea 
+              className="form-textarea-modern"
+              placeholder="ספר על היצירה שלך, התהליך, ההשראה..."
+              rows="5"
               value={form.description}
-              onChange={e=>setForm(f=>({...f, description:e.target.value}))}/>
+              onChange={e=>setForm(f=>({...f, description:e.target.value}))}
+            />
           </div>
         )}
 
-        <div>
-          <label className="form-label">תגיות (מופרדות בפסיק)</label>
-          <input className="form-control"
-            value={form.tags}
-            onChange={e=>setForm(f=>({...f, tags:e.target.value}))}/>
+        <div className="form-group-modern">
+          <label className="form-label-modern">
+            <span className="form-label-icon">🏷️</span>
+            תגיות
+          </label>
+          <div style={{ position: "relative" }}>
+            <input 
+              id="tagsInput"
+              className="form-input-modern"
+              placeholder="אמנות דיגיטלית, ציור, פנטזיה..."
+              value={form.tags}
+              onChange={e => handleTagsChange(e.target.value)}
+              onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
+              onFocus={() => {
+                // כשהשדה מקבל פוקוס, הצג הצעות
+                const tags = form.tags.split(",");
+                const currentTag = tags[tags.length - 1].trim();
+                
+                if (currentTag.length >= 1) {
+                  const filtered = POPULAR_TAGS.filter(tag => 
+                    tag.toLowerCase().includes(currentTag.toLowerCase())
+                  ).slice(0, 8);
+                  setTagSuggestions(filtered);
+                  setShowTagSuggestions(filtered.length > 0);
+                } else {
+                  // הצג תגיות פופולריות
+                  const topTags = POPULAR_TAGS.slice(0, 10);
+                  setTagSuggestions(topTags);
+                  setShowTagSuggestions(true);
+                }
+              }}
+            />
+            
+            {/* Dropdown של הצעות תגיות */}
+            {showTagSuggestions && (
+              <div className="tags-suggestions-dropdown">
+                {tagSuggestions.map((tag, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className="tag-suggestion-item"
+                    onClick={() => selectTag(tag)}
+                  >
+                    <span className="tag-icon">🏷️</span>
+                    <span>{tag}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <small style={{color: "#666", fontSize: "0.9rem", marginTop: "0.5rem", display: "block"}}>
+            הפרד תגיות בפסיקים - התחל להקליד לקבלת הצעות
+          </small>
         </div>
 
         {/* קטגוריות (רק ב-artwork) */}
         {mode === "art" && (
           <>
-            <div>
-              <label className="form-label">קטגוריות (מזהים מופרדים בפסיק)</label>
-              <input className="form-control"
-                placeholder="comics, digital-art, scifi, slice-of-life, painting..."
-                value={form.categoriesText}
-                onChange={e=>setForm(f=>({...f, categoriesText:e.target.value}))}/>
-              <div className="form-text">
-                מותר: comics, fantasy, scifi, horror, comedy, slice-of-life, erotic-18, concept-art,
-                digital-art, traditional-art, 3d, photography, painting
+            <div className="form-group-modern">
+              <label className="form-label-modern">
+                <span className="form-label-icon">📂</span>
+                קטגוריות
+              </label>
+              <p style={{color: "#666", fontSize: "0.95rem", marginBottom: "1rem"}}>
+                בחר קטגוריות שמתאימות ליצירה שלך (לחץ כדי לבחור/לבטל)
+              </p>
+              <div className="categories-selector">
+                {CATEGORY_IDS.map((categoryId) => (
+                  <button
+                    key={categoryId}
+                    type="button"
+                    className={`category-select-pill ${selectedCategories.includes(categoryId) ? 'selected' : ''}`}
+                    onClick={() => toggleCategory(categoryId)}
+                  >
+                    {categoryId === "comics" && "📚"}
+                    {categoryId === "fantasy" && "🧙"}
+                    {categoryId === "scifi" && "🚀"}
+                    {categoryId === "horror" && "👻"}
+                    {categoryId === "comedy" && "😂"}
+                    {categoryId === "slice-of-life" && "☕"}
+                    {categoryId === "erotic-18" && "🔞"}
+                    {categoryId === "concept-art" && "💡"}
+                    {categoryId === "digital-art" && "🖥️"}
+                    {categoryId === "traditional-art" && "🎨"}
+                    {categoryId === "3d" && "🧊"}
+                    {categoryId === "photography" && "📷"}
+                    {categoryId === "painting" && "🖌️"}
+                    <span style={{marginRight: "0.5rem"}}>{categoryId}</span>
+                  </button>
+                ))}
               </div>
+              {selectedCategories.length > 0 && (
+                <div className="info-box info-box-tip" style={{marginTop: "1rem"}}>
+                  <span className="info-box-icon">✓</span>
+                  <div className="info-box-content">
+                    <p className="info-box-text">
+                      נבחרו {selectedCategories.length} {selectedCategories.length === 1 ? 'קטגוריה' : 'קטגוריות'}: {selectedCategories.join(", ")}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="form-check">
-              <input className="form-check-input" id="age18" type="checkbox"
+            <label className="checkbox-modern">
+              <input 
+                type="checkbox" 
+                id="age18"
                 checked={form.ageRestricted}
-                onChange={e=>setForm(f=>({...f, ageRestricted:e.target.checked}))}/>
-              <label className="form-check-label" htmlFor="age18">
-                תוכן 18+
-              </label>
-            </div>
+                onChange={e=>setForm(f=>({...f, ageRestricted:e.target.checked}))}
+              />
+              <span className="checkbox-label">
+                <span>🔞</span>
+                תוכן למבוגרים בלבד (18+)
+              </span>
+            </label>
           </>
         )}
 
-        <div>
-          <label className="form-label fw-bold">
+        <div className="form-group-modern">
+          <label className="form-label-modern">
+            <span className="form-label-icon">
+              {mode === "art" ? "🖼️" : "📸"}
+            </span>
             {mode === "art" ? "תמונה *" : "גלריית תמונות"}
           </label>
           
           {mode === "post" && (
-            <div className="alert alert-info py-2 mb-2">
-              📸 הוסף תמונות ואז לחץ על "הוסף לטקסט" כדי להכניס אותן למיקום הרצוי בפוסט
+            <div className="info-box info-box-tip">
+              <span className="info-box-icon">📸</span>
+              <div className="info-box-content">
+                <p className="info-box-text">הוסף תמונות ואז לחץ על "הוסף לטקסט" כדי להכניס אותן למיקום הרצוי בפוסט</p>
+              </div>
             </div>
           )}
           
+          <div 
+            className={`file-upload-zone ${files.length > 0 ? "has-files" : ""}`}
+            onClick={() => document.getElementById('fileInput').click()}
+          >
+            <div className="file-upload-icon">
+              {files.length > 0 ? "✅" : "☁️"}
+            </div>
+            <div className="file-upload-text">
+              {files.length > 0 
+                ? `${files.length} ${files.length === 1 ? 'תמונה נבחרה' : 'תמונות נבחרו'}`
+                : "לחץ להעלאת תמונות"
+              }
+            </div>
+            <div className="file-upload-hint">
+              {mode === "art" ? "JPG, PNG או WEBP" : "בחר תמונה אחת או יותר"}
+            </div>
+          </div>
+          
           <input
+            id="fileInput"
             type="file"
             accept="image/*"
             multiple={mode === "post"}
-            className="form-control"
+            className="file-input-hidden"
             onChange={(e) => setFiles(e.target.files || [])}
           />
           
+          {/* תצוגת preview של התמונות */}
           {files.length > 0 && (
-            <>
-              <div className="form-text mb-3 fw-bold">
-                📁 {files.length} {files.length === 1 ? 'תמונה' : 'תמונות'}
-              </div>
-              
-              {/* תצוגת preview של התמונות */}
-              <div className="row g-3">
-                {Array.from(files).map((file, index) => (
-                  <div key={index} className="col-6 col-md-4">
-                    <div className="card shadow-sm h-100">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Preview ${index + 1}`}
-                        className="card-img-top"
-                        style={{ height: '180px', objectFit: 'cover' }}
-                      />
-                      <div className="card-body p-2">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <small className="text-muted">תמונה {index + 1}</small>
-                          <div className="btn-group btn-group-sm">
-                            {mode === "post" && (
-                              <button
-                                type="button"
-                                className="btn btn-outline-primary"
-                                onClick={() => insertImageAtCursor(index)}
-                                title="הוסף לטקסט במיקום הסמן"
-                              >
-                                ➕ הוסף
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="btn btn-outline-danger"
-                              onClick={() => {
-                                const newFiles = Array.from(files).filter((_, i) => i !== index);
-                                const dataTransfer = new DataTransfer();
-                                newFiles.forEach(f => dataTransfer.items.add(f));
-                                setFiles(dataTransfer.files);
-                              }}
-                              title="הסר תמונה"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+            <div className="image-preview-grid">
+              {Array.from(files).map((file, index) => (
+                <div key={index} className="image-preview-card">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Preview ${index + 1}`}
+                    className="image-preview-img"
+                  />
+                  <div className="image-preview-footer">
+                    <span className="image-preview-label">תמונה {index + 1}</span>
+                    <div className="image-preview-actions">
+                      {mode === "post" && (
+                        <button
+                          type="button"
+                          className="btn-image-action btn-image-insert"
+                          onClick={() => insertImageAtCursor(index)}
+                          title="הוסף לטקסט במיקום הסמן"
+                        >
+                          ➕
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-image-action btn-image-remove"
+                        onClick={() => {
+                          const newFiles = Array.from(files).filter((_, i) => i !== index);
+                          const dataTransfer = new DataTransfer();
+                          newFiles.forEach(f => dataTransfer.items.add(f));
+                          setFiles(dataTransfer.files);
+                        }}
+                        title="הסר תמונה"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        <button className="btn btn-primary" disabled={saving}>
-          {saving ? "מעלה…" : mode === "art" ? "פרסום היצירה" : "פרסום הפוסט"}
+        <button className="btn-submit-upload" disabled={saving}>
+          {saving ? "🚀 מעלה..." : mode === "art" ? "🎨 פרסום היצירה" : "📝 פרסום הפוסט"}
         </button>
       </form>
     </div>

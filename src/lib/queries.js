@@ -38,6 +38,48 @@ export async function getPostById(postId) {
   return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
 }
 
+/**
+ * חיפוש בפוסטים
+ */
+export async function searchPosts({ q: term = "", type = null, sort = "latest", limit: n = 40 }) {
+  // שלב 1: מביא את כל הפוסטים לפי פילטרים
+  let qRef = query(
+    collection(db, "posts"),
+    orderBy(sort === "popular" ? "counts.likes" : "createdAt", "desc"),
+    limit(n)
+  );
+
+  if (type) {
+    qRef = query(
+      collection(db, "posts"),
+      where("type", "==", type),
+      orderBy(sort === "popular" ? "counts.likes" : "createdAt", "desc"),
+      limit(n)
+    );
+  }
+
+  const snap = await getDocs(qRef);
+  let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  
+  // שלב 2: סינון טקסטואלי בצד הלקוח
+  if (term && term.trim()) {
+    const searchTerm = term.toLowerCase().trim();
+    results = results.filter(post => {
+      const title = (post.title || "").toLowerCase();
+      const body = (post.body || "").toLowerCase();
+      const tags = (post.tags || []).map(t => t.toLowerCase());
+      const authorName = (post.authorUsername || "").toLowerCase();
+      
+      return title.includes(searchTerm) || 
+             body.includes(searchTerm) ||
+             tags.some(tag => tag.includes(searchTerm)) ||
+             authorName.includes(searchTerm);
+    });
+  }
+  
+  return results;
+}
+
 // ========== ARTWORKS (DEVIANTART-STYLE) ==========
 
 /**
@@ -50,7 +92,10 @@ export async function getPostById(postId) {
 function buildArtQuery(opts = {}) {
   const { cat=null, sort="latest", nsfw="show", lim=24 } = opts;
 
-  const parts = [ where("visibility","==","public") ];
+  const parts = [];
+  
+  // זמנית - בלי visibility כדי לבדוק
+  // parts.push(where("visibility","==","public"));
 
   if (cat) parts.push(where("categories","array-contains", cat));
 
@@ -71,9 +116,27 @@ export async function getLatestArtworks(n = 24, opts = {}) {
 }
 
 export async function searchArtworks({ q: term = "", cat = null, sort = "latest", nsfw = "show", limit: n = 40 }) {
-  // TODO: term => אינדוקס עתידי (Algolia/Typesense או titleLower prefix)
+  // שלב 1: מביא את כל היצירות לפי פילטרים (קטגוריה, מיון, nsfw)
   const snap = await getDocs(buildArtQuery({ cat, sort, nsfw, lim: n }));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  
+  // שלב 2: אם יש טרם חיפוש טקסטואלי, מסנן בצד הלקוח
+  if (term && term.trim()) {
+    const searchTerm = term.toLowerCase().trim();
+    results = results.filter(art => {
+      const title = (art.title || "").toLowerCase();
+      const description = (art.description || "").toLowerCase();
+      const tags = (art.tags || []).map(t => t.toLowerCase());
+      const authorName = (art.authorName || "").toLowerCase();
+      
+      return title.includes(searchTerm) || 
+             description.includes(searchTerm) ||
+             tags.some(tag => tag.includes(searchTerm)) ||
+             authorName.includes(searchTerm);
+    });
+  }
+  
+  return results;
 }
 
 export async function getUserByUsername(username){
@@ -86,7 +149,8 @@ export async function getUserArtworks(userId) {
   const qRef = query(
     collection(db,"artworks"),
     where("authorId","==", userId),
-    where("visibility","==","public"),
+    // זמנית - בלי visibility
+    // where("visibility","==","public"),
     orderBy("createdAt","desc"),
     limit(60)
   );

@@ -87,8 +87,8 @@ export default function Navbar() {
                 to={`/u/${userProfile?.username || "me"}`}
               >
                 <div className="profile-avatar">
-                  {u.photoURL ? (
-                    <img src={u.photoURL} alt="Profile" />
+                  {(userProfile?.avatarUrl || u.photoURL) ? (
+                    <img src={userProfile?.avatarUrl || u.photoURL} alt="Profile" />
                   ) : (
                     <span>{u.displayName?.[0]?.toUpperCase() || "U"}</span>
                   )}
@@ -164,8 +164,8 @@ export default function Navbar() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 <div className="profile-avatar">
-                  {u.photoURL ? (
-                    <img src={u.photoURL} alt="Profile" />
+                  {(userProfile?.avatarUrl || u.photoURL) ? (
+                    <img src={userProfile?.avatarUrl || u.photoURL} alt="Profile" />
                   ) : (
                     <span>{u.displayName?.[0]?.toUpperCase() || "U"}</span>
                   )}
