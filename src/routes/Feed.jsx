@@ -1,0 +1,65 @@
+import { useEffect } from "react";
+import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
+import PostCard from "../components/PostCard";
+
+/**
+ * עמוד Feed עם פגינציה אינסופית (Tumblr-style)
+ */
+export default function Feed() {
+  const { items, loading, hasMore, error, loadMore } = useInfiniteFeed({
+    pageSize: 20,
+    type: null, // null = כל הסוגים
+  });
+
+  // טוען את העמוד הראשון
+  useEffect(() => {
+    if (items.length === 0 && !loading) {
+      loadMore();
+    }
+  }, []);
+
+  return (
+    <div className="container py-4">
+      <h1 className="mb-4">📰 Feed</h1>
+
+      {/* שגיאה */}
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
+
+      {/* רשת פוסטים */}
+      <div className="row g-4">
+        {items.map((post) => (
+          <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={post.id}>
+            <PostCard post={post} />
+          </div>
+        ))}
+      </div>
+
+      {/* טוען או כפתור "טען עוד" */}
+      <div className="mt-4 text-center">
+        {loading && (
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">טוען...</span>
+          </div>
+        )}
+
+        {!loading && hasMore && (
+          <button className="btn btn-outline-primary" onClick={loadMore}>
+            טען עוד
+          </button>
+        )}
+
+        {!loading && !hasMore && items.length > 0 && (
+          <p className="text-muted">זהו, הגעת לסוף! 🎉</p>
+        )}
+
+        {!loading && items.length === 0 && (
+          <p className="text-muted">אין פוסטים עדיין 😢</p>
+        )}
+      </div>
+    </div>
+  );
+}

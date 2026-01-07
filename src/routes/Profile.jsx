@@ -2,7 +2,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserByUsername, getUserArtworks } from "../lib/queries";
+import { getUserPosts } from "../services/posts.api";
 import ArtworkCard from "../components/ArtworkCard";
+import PostCard from "../components/PostCard";
 import FollowButton from "../components/FollowButton";
 import { auth, db, storage } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
@@ -21,6 +23,9 @@ export default function Profile() {
   const [editBio, setEditBio] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  
+  // State for tabs
+  const [activeTab, setActiveTab] = useState("artworks"); // "artworks" | "posts"
 
   // טוען את המשתמש לפי שם משתמש
   const {
@@ -43,6 +48,18 @@ export default function Profile() {
   } = useQuery({
     queryKey: ["arts", user?.uid],
     queryFn: () => getUserArtworks(user.uid),
+    enabled: !!user?.uid,
+    retry: false,
+  });
+
+  // טוען פוסטים של המשתמש
+  const {
+    data: posts = [],
+    isLoading: postsLoading,
+    isError: postsError,
+  } = useQuery({
+    queryKey: ["userPosts", user?.uid],
+    queryFn: () => getUserPosts(user.uid),
     enabled: !!user?.uid,
     retry: false,
   });
@@ -158,25 +175,82 @@ export default function Profile() {
         </div>
       )}
 
-      <h2 className="h5 mt-4 mb-3">Artworks</h2>
+      {/* Tabs Navigation */}
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "artworks" ? "active" : ""}`}
+            onClick={() => setActiveTab("artworks")}
+          >
+            🎨 יצירות אמנות ({arts.length})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "posts" ? "active" : ""}`}
+            onClick={() => setActiveTab("posts")}
+          >
+            📝 פוסטים ({posts.length})
+          </button>
+        </li>
+      </ul>
 
-      {artsLoading && <div>טוען יצירות…</div>}
-      {artsError && (
-        <div className="alert alert-warning" role="alert">
-          לא ניתן לטעון יצירות כרגע.
-        </div>
+      {/* Artworks Tab */}
+      {activeTab === "artworks" && (
+        <>
+          {artsLoading && <div>טוען יצירות…</div>}
+          {artsError && (
+            <div className="alert alert-warning" role="alert">
+              לא ניתן לטעון יצירות כרגע.
+            </div>
+          )}
+
+          <div className="row g-3">
+            {arts.map((a) => (
+              <div className="col-6 col-md-4 col-lg-3" key={a.id}>
+                <ArtworkCard art={a} />
+              </div>
+            ))}
+          </div>
+
+          {!artsLoading && !artsError && arts.length === 0 && (
+            <div className="alert alert-light text-center py-5">
+              <h5>אין יצירות עדיין</h5>
+              <p className="text-muted">
+                {isOwnProfile ? "התחל ליצור ולשתף את האמנות שלך!" : "המשתמש עדיין לא פרסם יצירות."}
+              </p>
+            </div>
+          )}
+        </>
       )}
 
-      <div className="row g-3">
-        {arts.map((a) => (
-          <div className="col-6 col-md-4 col-lg-3" key={a.id}>
-            <ArtworkCard art={a} />
-          </div>
-        ))}
-      </div>
+      {/* Posts Tab */}
+      {activeTab === "posts" && (
+        <>
+          {postsLoading && <div>טוען פוסטים…</div>}
+          {postsError && (
+            <div className="alert alert-warning" role="alert">
+              לא ניתן לטעון פוסטים כרגע.
+            </div>
+          )}
 
-      {!artsLoading && !artsError && arts.length === 0 && (
-        <div className="text-muted mt-3">אין יצירות להצגה.</div>
+          <div className="row g-4">
+            {posts.map((post) => (
+              <div className="col-12 col-sm-6 col-md-4" key={post.id}>
+                <PostCard post={post} />
+              </div>
+            ))}
+          </div>
+
+          {!postsLoading && !postsError && posts.length === 0 && (
+            <div className="alert alert-light text-center py-5">
+              <h5>אין פוסטים עדיין</h5>
+              <p className="text-muted">
+                {isOwnProfile ? "התחל לכתוב ולשתף את המחשבות שלך!" : "המשתמש עדיין לא פרסם פוסטים."}
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Profile Modal */}

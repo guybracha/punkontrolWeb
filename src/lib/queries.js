@@ -4,6 +4,42 @@ import {
   doc, getDoc
 } from "firebase/firestore";
 
+// ========== POSTS (TUMBLR-STYLE) ==========
+
+/**
+ * מחזיר פוסטים אחרונים (למיזוג עם feed)
+ */
+export async function getLatestPosts(n = 20, type = null) {
+  let q = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc"),
+    limit(n)
+  );
+
+  if (type) {
+    q = query(
+      collection(db, "posts"),
+      where("type", "==", type),
+      orderBy("createdAt", "desc"),
+      limit(n)
+    );
+  }
+
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * מחזיר פוסט בודד
+ */
+export async function getPostById(postId) {
+  const docRef = doc(db, "posts", postId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+}
+
+// ========== ARTWORKS (DEVIANTART-STYLE) ==========
+
 /**
  * opts:
  *  - cat: string | null            // מזהה קטגוריה (למשל "comics")
