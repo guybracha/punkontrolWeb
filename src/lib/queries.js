@@ -46,10 +46,10 @@ export async function getUserByUsername(username){
   return snap.empty ? null : { uid: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
-export async function getUserArtworks(username) {
+export async function getUserArtworks(userId) {
   const qRef = query(
     collection(db,"artworks"),
-    where("authorUsername","==", username),
+    where("authorId","==", userId),
     where("visibility","==","public"),
     orderBy("createdAt","desc"),
     limit(60)

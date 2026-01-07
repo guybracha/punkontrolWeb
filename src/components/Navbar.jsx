@@ -2,38 +2,196 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import "../styles/Navbar.css";
 
 export default function Navbar() {
   const [u, setU] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const nav = useNavigate();
   const [sp] = useSearchParams();
   const [q, setQ] = useState(sp.get("q") || "");
 
-  useEffect(() => onAuthStateChanged(auth, setU), []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setU(user);
+      if (user) {
+        // Fetch user profile from Firestore
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data());
+        }
+      } else {
+        setUserProfile(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
-  function onSubmit(e){
+  function onSubmit(e) {
     e.preventDefault();
-    nav(`/search?q=${encodeURIComponent(q)}`);
+    if (q.trim()) {
+      nav(`/search?q=${encodeURIComponent(q)}`);
+      setIsMenuOpen(false);
+    }
+  }
+
+  function handleLogout() {
+    signOut(auth);
+    setIsMenuOpen(false);
   }
 
   return (
-    <nav className="navbar navbar-light bg-light px-3">
-      <Link className="navbar-brand" to="/">punkontrol</Link>
-      <form className="d-flex" onSubmit={onSubmit}>
-        <input className="form-control me-2" placeholder="Search artworks…" value={q} onChange={e=>setQ(e.target.value)} />
-        <button className="btn btn-outline-primary">Search</button>
-      </form>
-      <div className="ms-auto d-flex gap-2">
-        {u ? (
-          <>
-            <Link className="btn btn-primary" to="/upload">+ Upload</Link>
-            <Link className="btn btn-outline-secondary" to={`/u/${u.displayName?.toLowerCase().replace(/\s+/g,"") || "me"}`}>הפרופיל שלי</Link>
-            <button className="btn btn-link" onClick={()=>signOut(auth)}>Logout</button>
-          </>
-        ) : (
-          <Link className="btn btn-primary" to="/login">Login</Link>
-        )}
+    <nav className="navbar-upgraded">
+      <div className="navbar-container">
+        {/* Logo Section */}
+        <Link className="navbar-logo" to="/" onClick={() => setIsMenuOpen(false)}>
+          <span className="logo-icon">🎨</span>
+          <span className="logo-text">punkontrol</span>
+        </Link>
+
+        {/* Search Bar - Desktop */}
+        <form className="navbar-search" onSubmit={onSubmit}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="חפש יצירות אמנות..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Search artworks"
+          />
+          <button type="submit" className="search-button" aria-label="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </button>
+        </form>
+
+        {/* Desktop Actions */}
+        <div className="navbar-actions">
+          {u ? (
+            <>
+              <Link className="nav-btn nav-btn-upload" to="/upload">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>העלה</span>
+              </Link>
+              <Link
+                className="nav-btn nav-btn-profile"
+                to={`/u/${userProfile?.username || "me"}`}
+              >
+                <div className="profile-avatar">
+                  {u.photoURL ? (
+                    <img src={u.photoURL} alt="Profile" />
+                  ) : (
+                    <span>{u.displayName?.[0]?.toUpperCase() || "U"}</span>
+                  )}
+                </div>
+                <span>הפרופיל שלי</span>
+              </Link>
+              <button className="nav-btn nav-btn-logout" onClick={handleLogout}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>התנתק</span>
+              </button>
+            </>
+          ) : (
+            <Link className="nav-btn nav-btn-login" to="/login">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              <span>התחבר</span>
+            </Link>
+          )}
+        </div>
+
+        {/* Mobile Menu Toggle */}
+        <button
+          className={`menu-toggle ${isMenuOpen ? "open" : ""}`}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+          aria-expanded={isMenuOpen}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      <div className={`mobile-menu ${isMenuOpen ? "open" : ""}`}>
+        <form className="mobile-search" onSubmit={onSubmit}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="חפש יצירות אמנות..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <button type="submit" className="search-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </button>
+        </form>
+
+        <div className="mobile-actions">
+          {u ? (
+            <>
+              <Link className="mobile-nav-btn" to="/upload" onClick={() => setIsMenuOpen(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>העלה יצירה</span>
+              </Link>
+              <Link
+                className="mobile-nav-btn"
+                to={`/u/${userProfile?.username || "me"}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <div className="profile-avatar">
+                  {u.photoURL ? (
+                    <img src={u.photoURL} alt="Profile" />
+                  ) : (
+                    <span>{u.displayName?.[0]?.toUpperCase() || "U"}</span>
+                  )}
+                </div>
+                <span>הפרופיל שלי</span>
+              </Link>
+              <button className="mobile-nav-btn logout" onClick={handleLogout}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>התנתק</span>
+              </button>
+            </>
+          ) : (
+            <Link className="mobile-nav-btn login" to="/login" onClick={() => setIsMenuOpen(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              <span>התחבר</span>
+            </Link>
+          )}
+        </div>
       </div>
     </nav>
   );

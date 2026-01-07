@@ -1,12 +1,26 @@
 // src/routes/Profile.jsx
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserByUsername, getUserArtworks } from "../lib/queries";
 import ArtworkCard from "../components/ArtworkCard";
 import FollowButton from "../components/FollowButton";
+import { auth, db, storage } from "../firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 export default function Profile() {
   const { username } = useParams();
+  const [currentUser] = useAuthState(auth);
+  const queryClient = useQueryClient();
+  
+  // State for edit modal
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   // טוען את המשתמש לפי שם משתמש
   const {
@@ -28,10 +42,57 @@ export default function Profile() {
     isError: artsError,
   } = useQuery({
     queryKey: ["arts", user?.uid],
-    queryFn: () => getUserArtworks(user.uid), // אם הפונקציה שלך מקבלת username – החלף ל: () => getUserArtworks(user.username)
+    queryFn: () => getUserArtworks(user.uid),
     enabled: !!user?.uid,
     retry: false,
   });
+
+  // Mutation for updating profile
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates) => {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["user", username]);
+      setIsEditing(false);
+    },
+  });
+
+  // Check if current user is viewing their own profile
+  const isOwnProfile = currentUser && user && currentUser.uid === user.uid;
+
+  const handleEditClick = () => {
+    setEditDisplayName(user.displayName || "");
+    setEditBio(user.bio || "");
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setUploading(true);
+    try {
+      const updates = {
+        displayName: editDisplayName.trim(),
+        bio: editBio.trim(),
+      };
+
+      // Upload avatar if selected
+      if (avatarFile) {
+        const storageRef = ref(storage, `avatars/${user.uid}/${Date.now()}_${avatarFile.name}`);
+        await uploadBytes(storageRef, avatarFile);
+        const avatarUrl = await getDownloadURL(storageRef);
+        updates.avatarUrl = avatarUrl;
+      }
+
+      await updateProfileMutation.mutateAsync(updates);
+      setAvatarFile(null);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("שגיאה בעדכון הפרופיל");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (userLoading) {
     return <div className="container py-4">טוען…</div>;
@@ -63,19 +124,39 @@ export default function Profile() {
           src={user.avatarUrl || "https://placehold.co/96x96?text=👤"}
           className="rounded-circle border"
           alt={`${user.displayName || user.username} avatar`}
-          width={64}
-          height={64}
+          width={96}
+          height={96}
+          style={{ objectFit: "cover" }}
         />
-        <div className="min-w-0">
+        <div className="flex-grow-1 min-w-0">
           <h1 className="h4 m-0 text-truncate">{user.displayName || user.username}</h1>
-          <div className="text-muted">@{user.username}</div>
+          <div className="text-muted mb-2">@{user.username}</div>
+          {user.email && <div className="text-muted small">📧 {user.email}</div>}
+          <div className="d-flex gap-3 mt-2 small">
+            <span><strong>{user.followersCount || 0}</strong> עוקבים</span>
+            <span><strong>{user.followingCount || 0}</strong> עוקב אחרי</span>
+            <span><strong>{user.artworksCount || 0}</strong> יצירות</span>
+          </div>
         </div>
         <div className="ms-auto">
-          <FollowButton targetUserId={user.uid} />
+          {isOwnProfile ? (
+            <button 
+              className="btn btn-outline-primary"
+              onClick={handleEditClick}
+            >
+              ✏️ ערוך פרופיל
+            </button>
+          ) : (
+            <FollowButton targetUserId={user.uid} />
+          )}
         </div>
       </header>
 
-      {user.bio && <p className="mb-4">{user.bio}</p>}
+      {user.bio && (
+        <div className="mb-4 p-3 bg-light rounded">
+          <p className="m-0" style={{ whiteSpace: "pre-wrap" }}>{user.bio}</p>
+        </div>
+      )}
 
       <h2 className="h5 mt-4 mb-3">Artworks</h2>
 
@@ -96,6 +177,99 @@ export default function Profile() {
 
       {!artsLoading && !artsError && arts.length === 0 && (
         <div className="text-muted mt-3">אין יצירות להצגה.</div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {isEditing && (
+        <div 
+          className="modal show d-block" 
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={() => !uploading && setIsEditing(false)}
+        >
+          <div 
+            className="modal-dialog modal-dialog-centered"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">ערוך פרופיל</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setIsEditing(false)}
+                  disabled={uploading}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label">שם תצוגה</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editDisplayName}
+                    onChange={(e) => setEditDisplayName(e.target.value)}
+                    disabled={uploading}
+                    maxLength={50}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">ביוגרפיה</label>
+                  <textarea
+                    className="form-control"
+                    rows={4}
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    disabled={uploading}
+                    maxLength={500}
+                    placeholder="ספר/י קצת על עצמך..."
+                  />
+                  <small className="text-muted">{editBio.length}/500</small>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">תמונת פרופיל</label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    accept="image/*"
+                    onChange={(e) => setAvatarFile(e.target.files[0])}
+                    disabled={uploading}
+                  />
+                  {avatarFile && (
+                    <small className="text-success d-block mt-1">
+                      ✓ קובץ נבחר: {avatarFile.name}
+                    </small>
+                  )}
+                </div>
+
+                {user.email && (
+                  <div className="alert alert-info small">
+                    <strong>אימייל:</strong> {user.email} (לא ניתן לעריכה)
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsEditing(false)}
+                  disabled={uploading}
+                >
+                  ביטול
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveProfile}
+                  disabled={uploading || !editDisplayName.trim()}
+                >
+                  {uploading ? "שומר..." : "שמור"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
