@@ -12,6 +12,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { fixUserCounts } from "../lib/fixCounts";
+import "../styles/Profile.css";
 
 export default function Profile() {
   const { username } = useParams();
@@ -165,47 +166,72 @@ export default function Profile() {
 
   return (
     <div className="container py-4">
-      <header className="d-flex align-items-center gap-3 mb-3">
-        <img
-          src={user.avatarUrl || currentUser?.photoURL || "https://placehold.co/96x96?text=👤"}
-          className="rounded-circle border"
-          alt={`${user.displayName || user.username} avatar`}
-          width={96}
-          height={96}
-          style={{ objectFit: "cover" }}
-        />
-        <div className="flex-grow-1 min-w-0">
-          <h1 className="h4 m-0 text-truncate">{user.displayName || user.username}</h1>
-          <div className="text-muted mb-2">@{user.username}</div>
-          {user.email && <div className="text-muted small">📧 {user.email}</div>}
-          <div className="d-flex gap-3 mt-2 small">
-            <span><strong>{user.followersCount || 0}</strong> עוקבים</span>
-            <span><strong>{user.followingCount || 0}</strong> עוקב אחרי</span>
-            <span><strong>{user.artworksCount || 0}</strong> יצירות</span>
-            <span><strong>{user.postsCount || 0}</strong> פוסטים</span>
+      {/* Profile Header */}
+      <header className="profile-header mb-4">
+        <div className="profile-header-content">
+          {/* Avatar */}
+          <div className="profile-avatar-wrapper">
+            <img
+              src={user.avatarUrl || currentUser?.photoURL || "https://placehold.co/100x100?text=👤"}
+              className="profile-avatar"
+              alt={`${user.displayName || user.username} avatar`}
+            />
           </div>
-        </div>
-        <div className="ms-auto">
-          {isOwnProfile ? (
-            <div className="d-flex gap-2">
-              <button 
-                className="btn btn-sm btn-outline-secondary"
-                onClick={handleFixCounts}
-                disabled={fixingCounts}
-                title="תקן את הספירות במידה והן לא מעודכנות"
-              >
-                {fixingCounts ? "🔄 מתקן..." : "🔧 תקן ספירות"}
-              </button>
-              <button 
-                className="btn btn-outline-primary"
-                onClick={handleEditClick}
-              >
-                ✏️ ערוך פרופיל
-              </button>
+
+          {/* Info Section */}
+          <div className="profile-info">
+            <div className="profile-name-section">
+              <h1 className="profile-name">{user.displayName || user.username}</h1>
+              <div className="profile-username">@{user.username}</div>
+              {user.email && <div className="profile-email">📧 {user.email}</div>}
             </div>
-          ) : (
-            <FollowButton targetUserId={user.uid} />
-          )}
+            
+            {/* Stats */}
+            <div className="profile-stats">
+              <div className="profile-stat">
+                <strong>{user.followersCount || 0}</strong>
+                <span>עוקבים</span>
+              </div>
+              <div className="profile-stat">
+                <strong>{user.followingCount || 0}</strong>
+                <span>עוקב</span>
+              </div>
+              <div className="profile-stat">
+                <strong>{user.artworksCount || 0}</strong>
+                <span>יצירות</span>
+              </div>
+              <div className="profile-stat">
+                <strong>{user.postsCount || 0}</strong>
+                <span>פוסטים</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="profile-actions">
+            {isOwnProfile ? (
+              <>
+                <button 
+                  className="btn btn-sm btn-outline-secondary profile-action-btn"
+                  onClick={handleFixCounts}
+                  disabled={fixingCounts}
+                  title="תקן את הספירות במידה והן לא מעודכנות"
+                >
+                  <span className="d-none d-md-inline">{fixingCounts ? "🔄 מתקן..." : "🔧 תקן ספירות"}</span>
+                  <span className="d-md-none">{fixingCounts ? "🔄" : "🔧"}</span>
+                </button>
+                <button 
+                  className="btn btn-outline-primary profile-action-btn"
+                  onClick={handleEditClick}
+                >
+                  <span className="d-none d-sm-inline">✏️ ערוך פרופיל</span>
+                  <span className="d-sm-none">✏️</span>
+                </button>
+              </>
+            ) : (
+              <FollowButton targetUserId={user.uid} />
+            )}
+          </div>
         </div>
       </header>
 

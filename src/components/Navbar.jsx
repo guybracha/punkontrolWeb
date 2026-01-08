@@ -44,26 +44,26 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar-upgraded">
+    <nav className="navbar-upgraded" role="navigation" aria-label="ניווט ראשי">
       <div className="navbar-container">
         {/* Logo Section */}
-        <Link className="navbar-logo" to="/" onClick={() => setIsMenuOpen(false)}>
-          <span className="logo-icon">🎨</span>
+        <Link className="navbar-logo" to="/" onClick={() => setIsMenuOpen(false)} aria-label="punkontrol - עמוד הבית">
+          <span className="logo-icon" aria-hidden="true">🎨</span>
           <span className="logo-text">punkontrol</span>
         </Link>
 
         {/* Search Bar - Desktop */}
-        <form className="navbar-search" onSubmit={onSubmit}>
+        <form className="navbar-search" onSubmit={onSubmit} role="search">
           <input
-            type="text"
+            type="search"
             className="search-input"
             placeholder="חפש יצירות אמנות..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            aria-label="Search artworks"
+            aria-label="חיפוש יצירות אמנות"
           />
-          <button type="submit" className="search-button" aria-label="Search">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button type="submit" className="search-button" aria-label="בצע חיפוש">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
@@ -74,8 +74,8 @@ export default function Navbar() {
         <div className="navbar-actions">
           {u ? (
             <>
-              <Link className="nav-btn nav-btn-upload" to="/upload">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <Link className="nav-btn nav-btn-upload" to="/upload" aria-label="העלה יצירה חדשה">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -85,18 +85,19 @@ export default function Navbar() {
               <Link
                 className="nav-btn nav-btn-profile"
                 to={`/u/${userProfile?.username || "me"}`}
+                aria-label={`הפרופיל של ${userProfile?.username || u.displayName || "משתמש"}`}
               >
                 <div className="profile-avatar">
                   {(userProfile?.avatarUrl || u.photoURL) ? (
-                    <img src={userProfile?.avatarUrl || u.photoURL} alt="Profile" />
+                    <img src={userProfile?.avatarUrl || u.photoURL} alt={`תמונת פרופיל של ${userProfile?.username || u.displayName}`} />
                   ) : (
-                    <span>{u.displayName?.[0]?.toUpperCase() || "U"}</span>
+                    <span aria-hidden="true">{u.displayName?.[0]?.toUpperCase() || "U"}</span>
                   )}
                 </div>
                 <span>הפרופיל שלי</span>
               </Link>
-              <button className="nav-btn nav-btn-logout" onClick={handleLogout}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <button className="nav-btn nav-btn-logout" onClick={handleLogout} aria-label="התנתק מהאתר">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
@@ -105,8 +106,8 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link className="nav-btn nav-btn-login" to="/login">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <Link className="nav-btn nav-btn-login" to="/login" aria-label="התחבר לאתר">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                 <polyline points="10 17 15 12 10 7" />
                 <line x1="15" y1="12" x2="3" y2="12" />
@@ -120,8 +121,9 @@ export default function Navbar() {
         <button
           className={`menu-toggle ${isMenuOpen ? "open" : ""}`}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
+          aria-label={isMenuOpen ? "סגור תפריט" : "פתח תפריט"}
           aria-expanded={isMenuOpen}
+          aria-controls="mobile-menu"
         >
           <span></span>
           <span></span>
@@ -130,17 +132,18 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Menu */}
-      <div className={`mobile-menu ${isMenuOpen ? "open" : ""}`}>
-        <form className="mobile-search" onSubmit={onSubmit}>
+      <div id="mobile-menu" className={`mobile-menu ${isMenuOpen ? "open" : ""}`} role="navigation" aria-label="תפריט ניווט נייד">
+        <form className="mobile-search" onSubmit={onSubmit} role="search">
           <input
-            type="text"
+            type="search"
             className="search-input"
             placeholder="חפש יצירות אמנות..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
+            aria-label="חיפוש יצירות אמנות"
           />
-          <button type="submit" className="search-button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button type="submit" className="search-button" aria-label="בצע חיפוש">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>

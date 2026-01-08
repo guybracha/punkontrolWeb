@@ -41,7 +41,7 @@ export default function Home(){
   return (
     <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Latest Content</h1>
+        <h1>תוכן אחרון</h1>
         
         {/* טאבים */}
         <div className="btn-group" role="group">
@@ -76,9 +76,9 @@ export default function Home(){
           </div>
         </div>
       ) : error ? (
-        <div className="alert alert-danger">שגיאה בטעינת התוכן</div>
+        <div className="alert alert-danger" role="alert">שגיאה בטעינת התוכן</div>
       ) : displayContent.length === 0 ? (
-        <div className="alert alert-info">אין תוכן עדיין</div>
+        <div className="alert alert-info" role="alert">אין תוכן עדיין</div>
       ) : (
         <div className="row g-3">
           {displayContent.map(item => (

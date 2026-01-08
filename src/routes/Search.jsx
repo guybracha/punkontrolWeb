@@ -85,8 +85,8 @@ export default function Search(){
   
   return (
     <div className="container py-4">
-      <h1>Search Results</h1>
-      {q && <p className="text-muted mb-3">Searching for: "{q}"</p>}
+      <h1>תוצאות חיפוש</h1>
+      {q && <p className="text-muted mb-3">מחפש את: "{q}"</p>}
       
       {/* טאבים לסוג תוכן */}
       <div className="mb-3">
@@ -127,19 +127,19 @@ export default function Search(){
         <div className="row g-3 align-items-center">
           {(contentType === "all" || contentType === "artworks") && (
             <div className="col-md-8">
-              <label className="form-label small fw-bold">Category Filter (Artworks only):</label>
+              <label className="form-label small fw-bold">סינון לפי קטגוריה (יצירות בלבד):</label>
               <CategoryPicker value={selectedCat} onChange={handleCategoryChange} allowAll />
             </div>
           )}
           <div className={(contentType === "all" || contentType === "artworks") ? "col-md-4" : "col-md-12"}>
-            <label className="form-label small fw-bold">Sort By:</label>
+            <label className="form-label small fw-bold">מיין לפי:</label>
             <select 
               className="form-select" 
               value={sortBy} 
               onChange={e=>handleSortChange(e.target.value)}
             >
-              <option value="latest">Latest</option>
-              <option value="popular">Most Popular</option>
+              <option value="latest">הכי חדש</option>
+              <option value="popular">הכי פופולרי</option>
             </select>
           </div>
         </div>
@@ -149,12 +149,12 @@ export default function Search(){
       {isLoading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">טוען...</span>
           </div>
         </div>
       ) : displayResults.length ? (
         <>
-          <p className="text-muted mb-3">{displayResults.length} result{displayResults.length !== 1 ? 's' : ''} found</p>
+          <p className="text-muted mb-3">נמצאו {displayResults.length} תוצאות</p>
           <div className="row g-3">
             {displayResults.map(item => (
               <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={`${item.contentType}-${item.id || item.uid}`}>
@@ -171,8 +171,8 @@ export default function Search(){
         </>
       ) : (
         <div className="text-center py-5">
-          <h3>No results found</h3>
-          <p className="text-muted">Try different keywords or remove filters</p>
+          <h3>לא נמצאו תוצאות</h3>
+          <p className="text-muted">נסה מילות מפתח אחרות או הסר סינונים</p>
         </div>
       )}
     </div>

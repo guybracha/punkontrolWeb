@@ -49,9 +49,11 @@ export default function LikeButton({ postId, initialCount = 0, size = "md" }) {
       className={`btn ${liked ? "btn-danger" : "btn-outline-danger"} ${buttonSize}`}
       onClick={handleClick}
       disabled={!userProfile || loading}
-      title={userProfile ? (liked ? "Unlike" : "Like") : "התחבר כדי לתת לייק"}
+      aria-label={userProfile ? (liked ? `בטל לייק, ${count} לייקים` : `תן לייק, ${count} לייקים`) : "התחבר כדי לתת לייק"}
+      aria-pressed={liked}
+      title={userProfile ? (liked ? "בטל לייק" : "תן לייק") : "התחבר כדי לתת לייק"}
     >
-      {liked ? "❤️" : "🤍"} {count}
+      <span aria-hidden="true">{liked ? "❤️" : "🤍"}</span> {count}
     </button>
   );
 }

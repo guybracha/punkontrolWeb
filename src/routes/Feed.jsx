@@ -23,17 +23,17 @@ export default function Feed() {
 
   return (
     <div className="container py-4">
-      <h1 className="mb-4">📰 Feed</h1>
+      <h1 className="mb-4"><span aria-hidden="true">📰</span> Feed</h1>
 
       {/* שגיאה */}
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div className="alert alert-danger" role="alert" aria-live="assertive">
           {error}
         </div>
       )}
 
       {/* רשת פוסטים */}
-      <div className="row g-4">
+      <div className="row g-4" role="list" aria-label="רשימת פוסטים">
         {items.map((post) => (
           <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={post.id}>
             <PostCard post={post} />
@@ -42,25 +42,25 @@ export default function Feed() {
       </div>
 
       {/* טוען או כפתור "טען עוד" */}
-      <div className="mt-4 text-center">
+      <div className="mt-4 text-center" role="region" aria-live="polite" aria-label="סטטוס טעינה">
         {loading && (
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">טוען...</span>
+            <span className="visually-hidden">טוען פוסטים נוספים...</span>
           </div>
         )}
 
         {!loading && hasMore && (
-          <button className="btn btn-outline-primary" onClick={loadMore}>
+          <button className="btn btn-outline-primary" onClick={loadMore} aria-label="טען פוסטים נוספים">
             טען עוד
           </button>
         )}
 
         {!loading && !hasMore && items.length > 0 && (
-          <p className="text-muted">זהו, הגעת לסוף! 🎉</p>
+          <p className="text-muted" role="status">זהו, הגעת לסוף! <span aria-hidden="true">🎉</span></p>
         )}
 
         {!loading && items.length === 0 && (
-          <p className="text-muted">אין פוסטים עדיין 😢</p>
+          <p className="text-muted" role="status">אין פוסטים עדיין <span aria-hidden="true">😢</span></p>
         )}
       </div>
     </div>

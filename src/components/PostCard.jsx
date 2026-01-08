@@ -11,15 +11,16 @@ export default function PostCard({ post }) {
   const firstImage = media[0]?.url;
 
   return (
-    <div className="card h-100 shadow-sm">
+    <article className="card h-100 shadow-sm" aria-label={`${getTypeLabel(type)}: ${title}`}>
       {/* תמונה */}
       {firstImage && (
-        <Link to={`/post/${id}`}>
+        <Link to={`/post/${id}`} aria-label={`הצג ${title}`}>
           <img
             src={firstImage}
             alt={title}
             className="card-img-top"
             style={{ height: 200, objectFit: "cover" }}
+            loading="lazy"
           />
         </Link>
       )}
@@ -34,7 +35,7 @@ export default function PostCard({ post }) {
 
         {/* כותרת */}
         <h5 className="card-title">
-          <Link to={`/post/${id}`} className="text-decoration-none text-dark">
+          <Link to={`/post/${id}`} className="text-decoration-none text-dark" aria-label={`קרא עוד על ${title}`}>
             {title}
           </Link>
         </h5>
@@ -48,7 +49,7 @@ export default function PostCard({ post }) {
 
         {/* מטא-דאטה */}
         <div className="d-flex justify-content-between align-items-center mt-3">
-          <Link to={`/u/${authorUsername}`} className="text-decoration-none small">
+          <Link to={`/u/${authorUsername}`} className="text-decoration-none small" aria-label={`פרופיל של ${authorUsername}`}>
             @{authorUsername}
           </Link>
           <div className="text-muted small" title={createdAt ? new Date(createdAt.toDate?.() || createdAt).toLocaleString("he-IL") : ""}>
@@ -57,11 +58,11 @@ export default function PostCard({ post }) {
         </div>
         
         {/* סטטיסטיקות */}
-        <div className="text-muted small mt-2">
-          ❤️ {counts.likes || 0} · 💬 {counts.comments || 0}
+        <div className="text-muted small mt-2" aria-label={`${counts.likes || 0} לייקים, ${counts.comments || 0} תגובות`}>
+          <span aria-hidden="true">❤️</span> {counts.likes || 0} <span aria-hidden="true">·</span> <span aria-hidden="true">💬</span> {counts.comments || 0}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
