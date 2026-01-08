@@ -1,0 +1,335 @@
+/* Static Pages Styles - About, Terms, Privacy, Contact */
+
+.static-page {
+  min-height: calc(100vh - 200px);
+  padding: 2rem 1rem;
+  direction: rtl;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.static-page-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.static-page h1 {
+  font-size: 2.5rem;
+  color: #667eea;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.last-updated {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  font-style: italic;
+}
+
+.intro-text {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.8;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-section {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.page-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.page-section h2 {
+  font-size: 1.8rem;
+  color: #764ba2;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.page-section h3 {
+  font-size: 1.3rem;
+  color: #667eea;
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+}
+
+.page-section p {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.page-section ul {
+  margin: 1rem 0 1rem 2rem;
+  line-height: 1.8;
+}
+
+.page-section ul li {
+  margin-bottom: 0.5rem;
+  color: #444;
+  font-size: 1.05rem;
+}
+
+.page-section a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.page-section a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+/* Feature Lists */
+.feature-list {
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+}
+
+.feature-list li {
+  padding: 0.8rem;
+  margin-bottom: 0.5rem;
+  background: #f8f9ff;
+  border-radius: 6px;
+  font-size: 1.05rem;
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  color: white;
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.feature-card p {
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+/* Contact Form */
+.contact-form {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #f8f9ff;
+  border-radius: 10px;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+  direction: rtl;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* Success Message */
+.success-message {
+  text-align: center;
+  padding: 3rem;
+  background: #d4edda;
+  border: 2px solid #28a745;
+  border-radius: 10px;
+  margin: 2rem 0;
+}
+
+.success-message h2 {
+  color: #155724;
+  margin-bottom: 1rem;
+}
+
+.success-message p {
+  color: #155724;
+  font-size: 1.1rem;
+}
+
+/* Contact Info */
+.contact-info {
+  background: #f8f9ff;
+  padding: 2rem;
+  border-radius: 10px;
+  margin-top: 3rem;
+}
+
+.contact-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.contact-method {
+  text-align: center;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.contact-method h3 {
+  color: #667eea;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.contact-method p {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* FAQ */
+.faq {
+  margin-top: 1.5rem;
+}
+
+.faq-item {
+  padding: 1.5rem;
+  background: #f8f9ff;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.faq-item h3 {
+  color: #667eea;
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.faq-item p {
+  margin-bottom: 0;
+  color: #555;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .static-page-container {
+    padding: 2rem 1.5rem;
+  }
+
+  .static-page h1 {
+    font-size: 2rem;
+  }
+
+  .page-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-form {
+    padding: 1.5rem;
+  }
+
+  .contact-methods {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .submit-btn {
+    transition: none;
+  }
+
+  .submit-btn:hover {
+    transform: none;
+  }
+}
+
+/* High Contrast */
+@media (prefers-contrast: high) {
+  .static-page-container {
+    border: 2px solid #000;
+  }
+
+  .page-section {
+    border-bottom-width: 2px;
+  }
+}
