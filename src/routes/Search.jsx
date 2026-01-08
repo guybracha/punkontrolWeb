@@ -1,9 +1,10 @@
 // src/routes/Search.jsx
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { searchArtworks, searchPosts } from "../lib/queries";
+import { searchArtworks, searchPosts, searchUsers } from "../lib/queries";
 import ArtworkCard from "../components/ArtworkCard";
 import PostCard from "../components/PostCard";
+import UserCard from "../components/UserCard";
 import CategoryPicker from "../components/CategoryPicker";
 import { useState } from "react";
 
@@ -12,7 +13,7 @@ export default function Search(){
   const q = sp.get("q") || "";
   const [selectedCat, setSelectedCat] = useState(sp.get("cat") || null);
   const [sortBy, setSortBy] = useState(sp.get("sort") || "latest");
-  const [contentType, setContentType] = useState(sp.get("type") || "all"); // "all" | "artworks" | "posts"
+  const [contentType, setContentType] = useState(sp.get("type") || "all"); // "all" | "artworks" | "posts" | "users"
   
   // חיפוש יצירות
   const { data: artworks=[], isLoading: artsLoading } = useQuery({ 
@@ -28,27 +29,36 @@ export default function Search(){
     enabled: !!q && (contentType === "all" || contentType === "posts")
   });
   
+  // חיפוש משתמשים
+  const { data: users=[], isLoading: usersLoading } = useQuery({ 
+    queryKey:["search-users", q, sortBy], 
+    queryFn:()=>searchUsers({q, sort: sortBy}), 
+    enabled: !!q && (contentType === "all" || contentType === "users")
+  });
+  
   // מיזוג ומיון תוצאות
   const allResults = [
     ...artworks.map(a => ({...a, contentType: 'artwork'})),
-    ...posts.map(p => ({...p, contentType: 'post'}))
+    ...posts.map(p => ({...p, contentType: 'post'})),
+    ...users.map(u => ({...u, contentType: 'user'}))
   ].sort((a, b) => {
     if (sortBy === "popular") {
-      const likesA = a.likesCount || a.counts?.likes || 0;
-      const likesB = b.likesCount || b.counts?.likes || 0;
+      const likesA = a.likesCount || a.counts?.likes || a.followersCount || 0;
+      const likesB = b.likesCount || b.counts?.likes || b.followersCount || 0;
       return likesB - likesA;
     }
-    const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
-    const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+    const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+    const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
     return dateB - dateA;
   });
   
   // תוצאות לפי טאב
   const displayResults = contentType === "all" ? allResults :
                          contentType === "artworks" ? artworks.map(a => ({...a, contentType: 'artwork'})) :
-                         posts.map(p => ({...p, contentType: 'post'}));
+                         contentType === "posts" ? posts.map(p => ({...p, contentType: 'post'})) :
+                         users.map(u => ({...u, contentType: 'user'}));
   
-  const isLoading = artsLoading || postsLoading;
+  const isLoading = artsLoading || postsLoading || usersLoading;
   
   function handleCategoryChange(cat) {
     setSelectedCat(cat);
@@ -102,19 +112,26 @@ export default function Search(){
           >
             📝 רשומות ({posts.length})
           </button>
+          <button 
+            type="button" 
+            className={`btn ${contentType === "users" ? "btn-primary" : "btn-outline-primary"}`}
+            onClick={() => handleTypeChange("users")}
+          >
+            👥 משתמשים ({users.length})
+          </button>
         </div>
       </div>
       
       {/* פילטרים */}
       <div className="mb-4 p-3 bg-light rounded">
         <div className="row g-3 align-items-center">
-          {contentType !== "posts" && (
+          {(contentType === "all" || contentType === "artworks") && (
             <div className="col-md-8">
               <label className="form-label small fw-bold">Category Filter (Artworks only):</label>
               <CategoryPicker value={selectedCat} onChange={handleCategoryChange} allowAll />
             </div>
           )}
-          <div className={contentType !== "posts" ? "col-md-4" : "col-md-12"}>
+          <div className={(contentType === "all" || contentType === "artworks") ? "col-md-4" : "col-md-12"}>
             <label className="form-label small fw-bold">Sort By:</label>
             <select 
               className="form-select" 
@@ -140,11 +157,13 @@ export default function Search(){
           <p className="text-muted mb-3">{displayResults.length} result{displayResults.length !== 1 ? 's' : ''} found</p>
           <div className="row g-3">
             {displayResults.map(item => (
-              <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={`${item.contentType}-${item.id}`}>
+              <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={`${item.contentType}-${item.id || item.uid}`}>
                 {item.contentType === 'artwork' ? (
                   <ArtworkCard art={item} />
-                ) : (
+                ) : item.contentType === 'post' ? (
                   <PostCard post={item} />
+                ) : (
+                  <UserCard user={item} />
                 )}
               </div>
             ))}

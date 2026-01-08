@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import PostCard from "../components/PostCard";
 
@@ -11,12 +11,15 @@ export default function Feed() {
     type: null, // null = כל הסוגים
   });
 
+  const isInitialLoad = useRef(true);
+
   // טוען את העמוד הראשון
   useEffect(() => {
-    if (items.length === 0 && !loading) {
+    if (isInitialLoad.current && items.length === 0 && !loading) {
+      isInitialLoad.current = false;
       loadMore();
     }
-  }, []);
+  }, [items.length, loading, loadMore]);
 
   return (
     <div className="container py-4">

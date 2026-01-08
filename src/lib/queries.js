@@ -145,6 +145,41 @@ export async function getUserByUsername(username){
   return snap.empty ? null : { uid: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
+/**
+ * חיפוש משתמשים לפי טקסט חופשי
+ */
+export async function searchUsers({ q: term = "", sort = "latest", limit: n = 40 }) {
+  // מביא משתמשים (ניתן להוסיף מיון לפי פופולריות בעתיד)
+  let qRef = query(
+    collection(db, "users"),
+    limit(n)
+  );
+
+  const snap = await getDocs(qRef);
+  let results = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  
+  // סינון טקסטואלי בצד הלקוח
+  if (term && term.trim()) {
+    const searchTerm = term.toLowerCase().trim();
+    results = results.filter(user => {
+      const username = (user.username || "").toLowerCase();
+      const displayName = (user.displayName || "").toLowerCase();
+      const bio = (user.bio || "").toLowerCase();
+      
+      return username.includes(searchTerm) || 
+             displayName.includes(searchTerm) ||
+             bio.includes(searchTerm);
+    });
+  }
+  
+  // מיון אופציונלי
+  if (sort === "popular") {
+    results.sort((a, b) => (b.followersCount || 0) - (a.followersCount || 0));
+  }
+  
+  return results;
+}
+
 export async function getUserArtworks(userId) {
   const qRef = query(
     collection(db,"artworks"),
