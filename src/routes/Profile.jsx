@@ -11,6 +11,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { fixUserCounts } from "../lib/fixCounts";
 
 export default function Profile() {
   const { username } = useParams();
@@ -26,6 +27,7 @@ export default function Profile() {
   
   // State for tabs
   const [activeTab, setActiveTab] = useState("artworks"); // "artworks" | "posts"
+  const [fixingCounts, setFixingCounts] = useState(false);
 
   // טוען את המשתמש לפי שם משתמש
   const {
@@ -118,6 +120,26 @@ export default function Profile() {
     }
   };
 
+  const handleFixCounts = async () => {
+    if (!user?.uid) return;
+    
+    setFixingCounts(true);
+    try {
+      const result = await fixUserCounts(user.uid);
+      if (result.success) {
+        alert(`✅ הספירות תוקנו!\n${result.artworksCount} יצירות\n${result.postsCount} פוסטים`);
+        queryClient.invalidateQueries(["user", username]);
+      } else {
+        alert("❌ שגיאה בתיקון הספירות");
+      }
+    } catch (error) {
+      console.error("Error fixing counts:", error);
+      alert("❌ שגיאה בתיקון הספירות");
+    } finally {
+      setFixingCounts(false);
+    }
+  };
+
   if (userLoading) {
     return <div className="container py-4">טוען…</div>;
   }
@@ -160,16 +182,27 @@ export default function Profile() {
             <span><strong>{user.followersCount || 0}</strong> עוקבים</span>
             <span><strong>{user.followingCount || 0}</strong> עוקב אחרי</span>
             <span><strong>{user.artworksCount || 0}</strong> יצירות</span>
+            <span><strong>{user.postsCount || 0}</strong> פוסטים</span>
           </div>
         </div>
         <div className="ms-auto">
           {isOwnProfile ? (
-            <button 
-              className="btn btn-outline-primary"
-              onClick={handleEditClick}
-            >
-              ✏️ ערוך פרופיל
-            </button>
+            <div className="d-flex gap-2">
+              <button 
+                className="btn btn-sm btn-outline-secondary"
+                onClick={handleFixCounts}
+                disabled={fixingCounts}
+                title="תקן את הספירות במידה והן לא מעודכנות"
+              >
+                {fixingCounts ? "🔄 מתקן..." : "🔧 תקן ספירות"}
+              </button>
+              <button 
+                className="btn btn-outline-primary"
+                onClick={handleEditClick}
+              >
+                ✏️ ערוך פרופיל
+              </button>
+            </div>
           ) : (
             <FollowButton targetUserId={user.uid} />
           )}

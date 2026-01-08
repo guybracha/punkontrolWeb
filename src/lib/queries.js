@@ -166,3 +166,29 @@ export async function getArtworkBySlugOrId(slugOrId){
   const snap = await getDocs(qRef);
   return snap.empty ? null : { id:snap.docs[0].id, ...snap.docs[0].data() };
 }
+
+/**
+ * מחיקת יצירה
+ * @param {string} artworkId - מזהה היצירה
+ * @param {string} userId - מזהה המשתמש (לעדכון הספירה)
+ */
+export async function deleteArtwork(artworkId, userId) {
+  const { deleteDoc, updateDoc } = await import("firebase/firestore");
+  
+  // מחק את היצירה
+  await deleteDoc(doc(db, "artworks", artworkId));
+  
+  // עדכן את ספירת היצירות של המשתמש
+  if (userId) {
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+    const currentCount = userSnap.data()?.artworksCount || 0;
+    
+    // וודא שהספירה לא תרד מתחת ל-0
+    if (currentCount > 0) {
+      await updateDoc(userRef, {
+        artworksCount: currentCount - 1
+      });
+    }
+  }
+}

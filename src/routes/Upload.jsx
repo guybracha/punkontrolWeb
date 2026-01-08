@@ -54,7 +54,7 @@ export default function Upload(){
   const [mode, setMode] = useState("art"); // "art" או "post"
   const [postType, setPostType] = useState("text"); // "text", "art", "comic"
   const [form, setForm] = useState({
-    title:"", description:"", tags:"", categoriesText:"", ageRestricted:false
+    title:"", description:"", tags:"", categoriesText:"", ageRestricted:false, youtubeUrl: ""
   });
   const [files, setFiles] = useState([]); // תמיכה במספר תמונות לפוסט
   const [saving, setSaving] = useState(false);
@@ -91,6 +91,15 @@ export default function Upload(){
         type: postType,
         tags,
         files: Array.from(files),
+        youtubeUrl: form.youtubeUrl.trim() || null,
+      });
+
+      // עדכן ספירת פוסטים של המשתמש
+      const userRef = doc(db, "users", u.uid);
+      const userSnap = await getDoc(userRef);
+      const currentPostsCount = userSnap.data()?.postsCount || 0;
+      await updateDoc(userRef, {
+        postsCount: currentPostsCount + 1
       });
 
       window.location.assign(`/post/${postId}`);
@@ -177,6 +186,14 @@ export default function Upload(){
       console.log('🔗 Download URL:', url);
       
       await updateDoc(doc(db,"artworks", docRef.id), { imageUrl: url });
+
+      // עדכן ספירת יצירות של המשתמש
+      const userRef = doc(db, "users", u.uid);
+      const userSnap = await getDoc(userRef);
+      const currentArtworksCount = userSnap.data()?.artworksCount || 0;
+      await updateDoc(userRef, {
+        artworksCount: currentArtworksCount + 1
+      });
 
       window.location.assign(`/art/${slug}`);
     } catch(e){
@@ -342,27 +359,46 @@ export default function Upload(){
 
         {mode === "post" ? (
           // עורך בסגנון בלוג לפוסטים
-          <div className="form-group-modern">
-            <label className="form-label-modern">
-              <span className="form-label-icon">📖</span>
-              תוכן הפוסט
-            </label>
-            <textarea 
-              id="postContent"
-              className="form-textarea-modern form-textarea-post" 
-              placeholder="ספר את הסיפור שלך...&#10;&#10;אתה יכול להוסיף תמונות מהגלריה למטה או פשוט לכתוב טקסט חופשי."
-              value={form.description}
-              onChange={e=>setForm(f=>({...f, description:e.target.value}))}
-            />
-            
-            <div className="info-box info-box-tip">
-              <span className="info-box-icon">💡</span>
-              <div className="info-box-content">
-                <div className="info-box-title">טיפ מקצועי</div>
-                <p className="info-box-text">השתמש ב-[תמונה X] כדי לסמן היכן תופיע כל תמונה בתוך הטקסט</p>
+          <>
+            <div className="form-group-modern">
+              <label className="form-label-modern">
+                <span className="form-label-icon">📖</span>
+                תוכן הפוסט
+              </label>
+              <textarea 
+                id="postContent"
+                className="form-textarea-modern form-textarea-post" 
+                placeholder="ספר את הסיפור שלך...&#10;&#10;אתה יכול להוסיף תמונות מהגלריה למטה או פשוט לכתוב טקסט חופשי."
+                value={form.description}
+                onChange={e=>setForm(f=>({...f, description:e.target.value}))}
+              />
+              
+              <div className="info-box info-box-tip">
+                <span className="info-box-icon">💡</span>
+                <div className="info-box-content">
+                  <div className="info-box-title">טיפ מקצועי</div>
+                  <p className="info-box-text">השתמש ב-[תמונה X] כדי לסמן היכן תופיע כל תמונה בתוך הטקסט</p>
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* שדה YouTube */}
+            <div className="form-group-modern">
+              <label className="form-label-modern">
+                <span className="form-label-icon">🎥</span>
+                סרטון YouTube (אופציונלי)
+              </label>
+              <input 
+                className="form-input-modern"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={form.youtubeUrl}
+                onChange={e=>setForm(f=>({...f, youtubeUrl:e.target.value}))}
+              />
+              <small style={{color: "#666", fontSize: "0.9rem", marginTop: "0.5rem", display: "block"}}>
+                הדבק קישור לסרטון YouTube והוא יוטמע בפוסט
+              </small>
+            </div>
+          </>
         ) : (
           // שדה תיאור רגיל ל-artwork
           <div className="form-group-modern">

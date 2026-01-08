@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getPostById, getComments, addComment, toggleLike, hasLiked } from "../services/posts.api";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { getPostById, getComments, addComment, toggleLike, hasLiked, updatePost, deletePost } from "../services/posts.api";
 import { useAuth } from "../context/AuthContext";
 
 export default function Post() {
   const { postId } = useParams();
+  const navigate = useNavigate();
   const { userProfile } = useAuth();
 
   const [post, setPost] = useState(null);
@@ -13,6 +14,10 @@ export default function Post() {
   const [liked, setLiked] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", body: "", tags: "" });
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // טוען פוסט ותגובות
   useEffect(() => {
@@ -104,6 +109,68 @@ export default function Post() {
     }
   }
 
+  // עריכת הפוסט
+  const isOwner = userProfile && post && userProfile.uid === post.authorId;
+
+  const handleEditClick = () => {
+    setEditForm({
+      title: post.title || "",
+      body: post.body || "",
+      tags: post.tags?.join(", ") || ""
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.title.trim()) return;
+    
+    setSaving(true);
+    try {
+      const tags = editForm.tags.split(",").map(t => t.trim()).filter(Boolean);
+      await updatePost(postId, {
+        title: editForm.title.trim(),
+        body: editForm.body.trim(),
+        tags
+      });
+      
+      // עדכון מקומי
+      setPost(prev => ({
+        ...prev,
+        title: editForm.title.trim(),
+        body: editForm.body.trim(),
+        tags
+      }));
+      
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating post:", error);
+      alert("שגיאה בעדכון הפוסט");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!post || !isOwner) return;
+    
+    const confirmed = window.confirm(
+      `האם אתה בטוח שברצונך למחוק את הפוסט "${post.title}"?\n\nפעולה זו לא ניתנת לביטול!`
+    );
+    
+    if (!confirmed) return;
+    
+    setDeleting(true);
+    try {
+      await deletePost(postId, userProfile.uid);
+      alert("הפוסט נמחק בהצלחה");
+      navigate(`/u/${post.authorUsername}`);
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("שגיאה במחיקת הפוסט");
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container py-5 text-center">
@@ -125,7 +192,29 @@ export default function Post() {
   return (
     <div className="container py-4" style={{ maxWidth: 800 }}>
       {/* כותרת */}
-      <h1 className="mb-3">{post.title}</h1>
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <h1 className="mb-0">{post.title}</h1>
+        {isOwner && (
+          <div className="d-flex gap-2">
+            <button 
+              className="btn btn-sm btn-outline-primary"
+              onClick={handleEditClick}
+              title="ערוך פוסט"
+              disabled={deleting}
+            >
+              ✏️
+            </button>
+            <button 
+              className="btn btn-sm btn-outline-danger"
+              onClick={handleDelete}
+              title="מחק פוסט"
+              disabled={deleting}
+            >
+              {deleting ? "🔄" : "🗑️"}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* מחבר */}
       <div className="mb-3">
@@ -148,6 +237,20 @@ export default function Post() {
               className="img-fluid mb-3 rounded"
             />
           ))}
+        </div>
+      )}
+
+      {/* סרטון YouTube */}
+      {post.youtubeId && (
+        <div className="mb-4">
+          <div className="ratio ratio-16x9">
+            <iframe
+              src={`https://www.youtube.com/embed/${post.youtubeId}`}
+              title="YouTube video"
+              allowFullScreen
+              className="rounded"
+            ></iframe>
+          </div>
         </div>
       )}
 
@@ -219,6 +322,88 @@ export default function Post() {
                 <Link to={`/u/${comment.authorUsername}`} className="fw-bold text-decoration-none">
                   @{comment.authorUsername}
                 </Link>
+
+      {/* Edit Modal */}
+      {isEditing && (
+        <div 
+          className="modal show d-block" 
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 10000 }}
+          onClick={() => !saving && setIsEditing(false)}
+        >
+          <div 
+            className="modal-dialog modal-dialog-centered modal-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">ערוך פוסט</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label">כותרת *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm(f => ({ ...f, title: e.target.value }))}
+                    disabled={saving}
+                    maxLength={200}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">תוכן</label>
+                  <textarea
+                    className="form-control"
+                    rows={8}
+                    value={editForm.body}
+                    onChange={(e) => setEditForm(f => ({ ...f, body: e.target.value }))}
+                    disabled={saving}
+                    maxLength={10000}
+                    placeholder="כתוב את הפוסט שלך..."
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">תגיות (מופרדות בפסיק)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.tags}
+                    onChange={(e) => setEditForm(f => ({ ...f, tags: e.target.value }))}
+                    disabled={saving}
+                    placeholder="אמנות, בלוג, מחשבות"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
+                >
+                  ביטול
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveEdit}
+                  disabled={saving || !editForm.title.trim()}
+                >
+                  {saving ? "שומר..." : "שמור שינויים"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
                 <span className="text-muted ms-2 small">
                   {new Date(comment.createdAt?.toDate?.() || comment.createdAt).toLocaleDateString(
                     "he-IL"

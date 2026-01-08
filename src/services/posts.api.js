@@ -122,11 +122,19 @@ async function uploadImages(uid, files) {
  * @param {string} postData.type - "art" | "text" | "comic"
  * @param {string[]} postData.tags - תגיות
  * @param {File[]} postData.files - קבצים להעלאה (אופציונלי)
+ * @param {string} postData.youtubeUrl - קישור לסרטון YouTube (אופציונלי)
  * @returns {Promise<string>} מזהה הפוסט החדש
  */
-export async function createPost({ uid, username, title, body, type, tags = [], files = [] }) {
+export async function createPost({ uid, username, title, body, type, tags = [], files = [], youtubeUrl = null }) {
   // העלאת תמונות אם יש
   const media = files?.length ? await uploadImages(uid, files) : [];
+
+  // חילוץ YouTube ID מהקישור
+  let youtubeId = null;
+  if (youtubeUrl) {
+    const match = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+    youtubeId = match ? match[1] : null;
+  }
 
   // יצירת הפוסט
   const docRef = await addDoc(collection(db, "posts"), {
@@ -137,6 +145,7 @@ export async function createPost({ uid, username, title, body, type, tags = [], 
     type,
     tags,
     media,
+    youtubeId,
     createdAt: serverTimestamp(),
     counts: {
       likes: 0,
@@ -157,10 +166,26 @@ export async function updatePost(postId, updates) {
 
 /**
  * מחיקת פוסט
+ * @param {string} postId - מזהה הפוסט
+ * @param {string} userId - מזהה המשתמש (לעדכון הספירה)
  */
-export async function deletePost(postId) {
+export async function deletePost(postId, userId) {
   const docRef = doc(db, "posts", postId);
   await deleteDoc(docRef);
+  
+  // עדכן את ספירת הפוסטים של המשתמש
+  if (userId) {
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+    const currentCount = userSnap.data()?.postsCount || 0;
+    
+    // וודא שהספירה לא תרד מתחת ל-0
+    if (currentCount > 0) {
+      await updateDoc(userRef, {
+        postsCount: currentCount - 1
+      });
+    }
+  }
 }
 
 // ========== COMMENTS ==========
