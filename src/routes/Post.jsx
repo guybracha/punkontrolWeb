@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPostById, getComments, addComment, toggleLike, hasLiked, updatePost, deletePost } from "../services/posts.api";
 import { useAuth } from "../context/AuthContext";
+import { formatRelativeTime } from "../lib/dateUtils";
 
 export default function Post() {
   const { postId } = useParams();
@@ -289,39 +290,90 @@ export default function Post() {
       <hr />
 
       {/* תגובות */}
-      <h3 className="mb-3">תגובות</h3>
+      <h3 className="h5 mb-3">💬 תגובות ({comments.length})</h3>
 
       {/* טופס תגובה */}
       {userProfile ? (
         <form onSubmit={handleComment} className="mb-4">
-          <textarea
-            className="form-control mb-2"
-            rows="3"
-            placeholder="כתוב/כתבי תגובה..."
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-          />
-          <button className="btn btn-primary" disabled={submitting || !commentText.trim()}>
-            {submitting ? "שולח..." : "שלח תגובה"}
-          </button>
+          <div className="d-flex gap-2 align-items-start">
+            <img
+              src={userProfile.avatarUrl || "https://placehold.co/40x40?text=👤"}
+              alt={userProfile.username}
+              className="rounded-circle"
+              style={{ width: "40px", height: "40px", objectFit: "cover" }}
+            />
+            <div className="flex-grow-1">
+              <textarea
+                className="form-control"
+                rows="3"
+                placeholder="כתוב תגובה..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                disabled={submitting}
+                maxLength={1000}
+              />
+              <div className="d-flex justify-content-between align-items-center mt-2">
+                <small className="text-muted">{commentText.length}/1000</small>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={submitting || !commentText.trim()}
+                >
+                  {submitting ? "שולח..." : "פרסם תגובה"}
+                </button>
+              </div>
+            </div>
+          </div>
         </form>
       ) : (
         <div className="alert alert-info mb-4">
-          <Link to="/login">התחבר/י</Link> כדי להגיב
+          <Link to="/login" className="alert-link">התחבר</Link> כדי להגיב על הפוסט
         </div>
       )}
 
       {/* רשימת תגובות */}
-      <div className="vstack gap-3">
-        {comments.length === 0 && <p className="text-muted">אין תגובות עדיין</p>}
-
-        {comments.map((comment) => (
-          <div key={comment.id} className="card">
-            <div className="card-body">
-              <div className="mb-2">
-                <Link to={`/u/${comment.authorUsername}`} className="fw-bold text-decoration-none">
-                  @{comment.authorUsername}
-                </Link>
+      {comments.length === 0 ? (
+        <div className="alert alert-light text-center">
+          אין תגובות עדיין. היה הראשון להגיב!
+        </div>
+      ) : (
+        <div className="d-flex flex-column gap-3">
+          {comments.map((comment) => (
+            <div key={comment.id} className="card">
+              <div className="card-body">
+                <div className="d-flex gap-2">
+                  <Link to={`/u/${comment.authorUsername}`}>
+                    <img
+                      src={comment.authorAvatar || "https://placehold.co/40x40?text=👤"}
+                      alt={comment.authorUsername}
+                      className="rounded-circle"
+                      style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                    />
+                  </Link>
+                  <div className="flex-grow-1">
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div>
+                        <Link
+                          to={`/u/${comment.authorUsername}`}
+                          className="fw-bold text-decoration-none"
+                        >
+                          @{comment.authorUsername}
+                        </Link>
+                        <small className="text-muted ms-2">
+                          {formatRelativeTime(comment.createdAt)}
+                        </small>
+                      </div>
+                    </div>
+                    <p className="mb-0 mt-2" style={{ whiteSpace: "pre-wrap" }}>
+                      {comment.text}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Edit Modal */}
       {isEditing && (
@@ -404,17 +456,6 @@ export default function Post() {
           </div>
         </div>
       )}
-                <span className="text-muted ms-2 small">
-                  {new Date(comment.createdAt?.toDate?.() || comment.createdAt).toLocaleDateString(
-                    "he-IL"
-                  )}
-                </span>
-              </div>
-              <p className="mb-0">{comment.text}</p>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

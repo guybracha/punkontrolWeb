@@ -1,11 +1,12 @@
 // src/routes/Artwork.jsx
-import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getArtworkBySlugOrId, deleteArtwork } from "../lib/queries";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { getArtworkBySlugOrId, deleteArtwork, hasLikedArtwork, toggleArtworkLike, getArtworkComments, addArtworkComment, deleteArtworkComment } from "../lib/queries";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { formatRelativeTime } from "../lib/dateUtils";
 
 export default function Artwork(){
   const { slugOrId } = useParams();
@@ -13,11 +14,23 @@ export default function Artwork(){
   const { data:art } = useQuery({ queryKey:["art",slugOrId], queryFn:()=>getArtworkBySlugOrId(slugOrId) });
   const { userProfile } = useAuth();
   const queryClient = useQueryClient();
+  
+  // טוען תגובות
+  const { data: comments = [], isLoading: commentsLoading } = useQuery({
+    queryKey: ["artworkComments", art?.id],
+    queryFn: () => getArtworkComments(art.id),
+    enabled: !!art?.id,
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", description: "", tags: "" });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likingInProgress, setLikingInProgress] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   // תמיכה במקש ESC לסגירת המודאל
   useEffect(() => {
@@ -33,6 +46,45 @@ export default function Artwork(){
       document.body.style.overflow = 'unset';
     };
   }, [isModalOpen]);
+
+  // בדיקת סטטוס לייק וטעינת מספר הלייקים
+  useEffect(() => {
+    async function checkLikeStatus() {
+      if (!art?.id || !userProfile?.uid) return;
+
+      try {
+        const isLiked = await hasLikedArtwork(art.id, userProfile.uid);
+        setLiked(isLiked);
+        setLikeCount(art.likesCount || 0);
+      } catch (error) {
+        console.error("Error checking like status:", error);
+        setLikeCount(art.likesCount || 0);
+      }
+    }
+
+    checkLikeStatus();
+  }, [art, userProfile]);
+
+  // Mutation להוספת תגובה
+  const addCommentMutation = useMutation({
+    mutationFn: async (commentData) => {
+      return await addArtworkComment(art.id, commentData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["artworkComments", art.id]);
+      setCommentText("");
+    },
+  });
+
+  // Mutation למחיקת תגובה
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId) => {
+      return await deleteArtworkComment(art.id, commentId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["artworkComments", art.id]);
+    },
+  });
 
   const isOwner = userProfile && art && userProfile.uid === art.authorId;
 
@@ -86,6 +138,56 @@ export default function Artwork(){
       console.error("Error deleting artwork:", error);
       alert("שגיאה במחיקת היצירה");
       setDeleting(false);
+    }
+  };
+
+  const handleLikeToggle = async () => {
+    if (!art?.id || !userProfile?.uid || likingInProgress) return;
+
+    setLikingInProgress(true);
+    try {
+      const newLiked = await toggleArtworkLike(art.id, userProfile.uid, {
+        username: userProfile.username,
+        avatarUrl: userProfile.avatarUrl,
+      });
+      setLiked(newLiked);
+      setLikeCount((prev) => prev + (newLiked ? 1 : -1));
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      alert("שגיאה בעדכון הלייק");
+    } finally {
+      setLikingInProgress(false);
+    }
+  };
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim() || !userProfile || submittingComment) return;
+
+    setSubmittingComment(true);
+    try {
+      await addCommentMutation.mutateAsync({
+        authorId: userProfile.uid,
+        authorUsername: userProfile.username,
+        authorAvatar: userProfile.avatarUrl || null,
+        text: commentText.trim(),
+      });
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      alert("שגיאה בהוספת התגובה");
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק את התגובה?")) return;
+
+    try {
+      await deleteCommentMutation.mutateAsync(commentId);
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("שגיאה במחיקת התגובה");
     }
   };
 
@@ -149,7 +251,122 @@ export default function Artwork(){
             </div>
             <div className="text-muted mb-2">@{art.authorUsername}</div>
             <p>{art.description}</p>
+            
+            {/* כפתור לייק */}
+            <div className="mb-3">
+              <button
+                className={`btn ${liked ? "btn-danger" : "btn-outline-danger"}`}
+                onClick={handleLikeToggle}
+                disabled={!userProfile || likingInProgress}
+                title={userProfile ? (liked ? "בטל לייק" : "תן לייק") : "התחבר כדי לתת לייק"}
+                aria-label={userProfile ? (liked ? `בטל לייק, ${likeCount} לייקים` : `תן לייק, ${likeCount} לייקים`) : "התחבר כדי לתת לייק"}
+              >
+                <span aria-hidden="true">{liked ? "❤️" : "🤍"}</span> {likeCount}
+              </button>
+            </div>
+            
             <div className="d-flex flex-wrap gap-2">{art.tags?.map(t=><span key={t} className="badge bg-secondary">{t}</span>)}</div>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="row mt-5">
+          <div className="col-12">
+            <h3 className="h5 mb-3">💬 תגובות ({comments.length})</h3>
+            
+            {/* Add Comment Form */}
+            {userProfile ? (
+              <form onSubmit={handleSubmitComment} className="mb-4">
+                <div className="d-flex gap-2 align-items-start">
+                  <img
+                    src={userProfile.avatarUrl || "https://placehold.co/40x40?text=👤"}
+                    alt={userProfile.username}
+                    className="rounded-circle"
+                    style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                  />
+                  <div className="flex-grow-1">
+                    <textarea
+                      className="form-control"
+                      rows="3"
+                      placeholder="כתוב תגובה..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      disabled={submittingComment}
+                      maxLength={1000}
+                    />
+                    <div className="d-flex justify-content-between align-items-center mt-2">
+                      <small className="text-muted">{commentText.length}/1000</small>
+                      <button
+                        type="submit"
+                        className="btn btn-primary btn-sm"
+                        disabled={!commentText.trim() || submittingComment}
+                      >
+                        {submittingComment ? "שולח..." : "פרסם תגובה"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <div className="alert alert-info mb-4">
+                <Link to="/login" className="alert-link">התחבר</Link> כדי להגיב על היצירה
+              </div>
+            )}
+
+            {/* Comments List */}
+            {commentsLoading ? (
+              <div className="text-center py-3">טוען תגובות...</div>
+            ) : comments.length === 0 ? (
+              <div className="alert alert-light text-center">
+                אין תגובות עדיין. היה הראשון להגיב!
+              </div>
+            ) : (
+              <div className="d-flex flex-column gap-3">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="card">
+                    <div className="card-body">
+                      <div className="d-flex gap-2">
+                        <Link to={`/u/${comment.authorUsername}`}>
+                          <img
+                            src={comment.authorAvatar || "https://placehold.co/40x40?text=👤"}
+                            alt={comment.authorUsername}
+                            className="rounded-circle"
+                            style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                          />
+                        </Link>
+                        <div className="flex-grow-1">
+                          <div className="d-flex justify-content-between align-items-start">
+                            <div>
+                              <Link
+                                to={`/u/${comment.authorUsername}`}
+                                className="fw-bold text-decoration-none"
+                              >
+                                @{comment.authorUsername}
+                              </Link>
+                              <small className="text-muted ms-2">
+                                {formatRelativeTime(comment.createdAt)}
+                              </small>
+                            </div>
+                            {userProfile?.uid === comment.authorId && (
+                              <button
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleDeleteComment(comment.id)}
+                                title="מחק תגובה"
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </div>
+                          <p className="mb-0 mt-2" style={{ whiteSpace: "pre-wrap" }}>
+                            {comment.text}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

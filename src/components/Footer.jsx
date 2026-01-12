@@ -31,21 +31,6 @@ export default function Footer() {
             <li><a href="/contact">צור קשר</a></li>
           </ul>
         </div>
-        
-        <div className="footer-section">
-          <h4>עקוב אחרינו</h4>
-          <div className="social-links">
-            <a href="#" aria-label="Instagram">
-              <i className="social-icon">📷</i>
-            </a>
-            <a href="#" aria-label="Twitter">
-              <i className="social-icon">🐦</i>
-            </a>
-            <a href="#" aria-label="Facebook">
-              <i className="social-icon">📘</i>
-            </a>
-          </div>
-        </div>
       </div>
       
       <div className="footer-bottom">

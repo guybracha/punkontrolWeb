@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import NotificationBell from "./NotificationBell";
 import "../styles/Navbar.css";
 
 export default function Navbar() {
@@ -74,6 +75,10 @@ export default function Navbar() {
         <div className="navbar-actions">
           {u ? (
             <>
+              <NotificationBell />
+              <Link className="nav-btn" to="/messages" aria-label="הודעות">
+                <span style={{ fontSize: "1.3rem" }}>✉️</span>
+              </Link>
               <Link className="nav-btn nav-btn-upload" to="/upload" aria-label="העלה יצירה חדשה">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -153,6 +158,10 @@ export default function Navbar() {
         <div className="mobile-actions">
           {u ? (
             <>
+              <Link className="mobile-nav-btn" to="/messages" onClick={() => setIsMenuOpen(false)}>
+                <span style={{ fontSize: "1.5rem" }}>✉️</span>
+                <span>הודעות</span>
+              </Link>
               <Link className="mobile-nav-btn" to="/upload" onClick={() => setIsMenuOpen(false)}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

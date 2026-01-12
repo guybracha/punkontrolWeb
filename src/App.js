@@ -13,6 +13,7 @@ import Profile from "./routes/Profile";
 import Artwork from "./routes/Artwork";
 import Upload from "./routes/Upload";
 import Login from "./routes/Login";
+import Messages from "./routes/Messages";
 import About from "./routes/About";
 import Terms from "./routes/Terms";
 import Privacy from "./routes/Privacy";
@@ -43,6 +44,22 @@ export default function App() {
                 element={
                   <RequireKnownUser>
                     <Upload />
+                  </RequireKnownUser>
+                }
+              />
+              <Route
+                path="/messages"
+                element={
+                  <RequireKnownUser>
+                    <Messages />
+                  </RequireKnownUser>
+                }
+              />
+              <Route
+                path="/messages/:username"
+                element={
+                  <RequireKnownUser>
+                    <Messages />
                   </RequireKnownUser>
                 }
               />

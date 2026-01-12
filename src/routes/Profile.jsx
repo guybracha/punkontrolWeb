@@ -229,16 +229,30 @@ export default function Profile() {
                 </button>
               </>
             ) : (
-              <FollowButton targetUserId={user.uid} />
+              <>
+                <FollowButton targetUserId={user.uid} />
+                <Link 
+                  to={`/messages/${user.username}`}
+                  className="btn btn-outline-secondary btn-sm ms-2"
+                  title="שלח הודעה"
+                >
+                  <span className="d-none d-sm-inline">✉️ שלח הודעה</span>
+                  <span className="d-sm-none">✉️</span>
+                </Link>
+              </>
             )}
           </div>
         </div>
       </header>
 
+      {/* Bio Section */}
       {user.bio && (
-        <div className="mb-4 p-3 bg-light rounded">
-          <p className="m-0" style={{ whiteSpace: "pre-wrap" }}>{user.bio}</p>
-        </div>
+        <section className="profile-bio-section mb-4">
+          <div className="bio-content p-3 bg-light rounded">
+            <h5 className="bio-title mb-2">📝 אודות</h5>
+            <p className="bio-text m-0" style={{ whiteSpace: "pre-wrap" }}>{user.bio}</p>
+          </div>
+        </section>
       )}
 
       {/* Tabs Navigation */}

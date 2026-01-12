@@ -118,7 +118,7 @@ export default function Contact() {
           <div className="contact-methods">
             <div className="contact-method">
               <h3>📧 אימייל</h3>
-              <p>support@punkontrol.com</p>
+              <p>guy.bracha@gmail.com</p>
             </div>
             <div className="contact-method">
               <h3>💬 רשתות חברתיות</h3>

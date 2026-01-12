@@ -227,3 +227,152 @@ export async function deleteArtwork(artworkId, userId) {
     }
   }
 }
+
+// ========== ARTWORK LIKES ==========
+
+/**
+ * בדיקה אם משתמש לייק ליצירה
+ * @param {string} artworkId - מזהה היצירה
+ * @param {string} uid - מזהה המשתמש
+ * @returns {Promise<boolean>}
+ */
+export async function hasLikedArtwork(artworkId, uid) {
+  const docRef = doc(db, "artworks", artworkId, "likes", uid);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists();
+}
+
+// ========== ARTWORK COMMENTS ==========
+
+/**
+ * מחזיר תגובות ליצירה
+ * @param {string} artworkId - מזהה היצירה
+ * @returns {Promise<Array>}
+ */
+export async function getArtworkComments(artworkId) {
+  const { query, collection, orderBy, getDocs } = await import("firebase/firestore");
+  
+  const q = query(
+    collection(db, "artworks", artworkId, "comments"),
+    orderBy("createdAt", "asc")
+  );
+
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * הוספת תגובה ליצירה
+ * @param {string} artworkId - מזהה היצירה
+ * @param {Object} commentData
+ * @param {string} commentData.authorId - UID המשתמש
+ * @param {string} commentData.authorUsername - שם משתמש
+ * @param {string} commentData.authorAvatar - תמונת פרופיל
+ * @param {string} commentData.text - תוכן התגובה
+ * @returns {Promise<string>} מזהה התגובה החדשה
+ */
+export async function addArtworkComment(artworkId, { authorId, authorUsername, authorAvatar, text }) {
+  const { addDoc, collection, serverTimestamp, updateDoc, increment } = await import("firebase/firestore");
+  
+  // הוספת התגובה
+  const docRef = await addDoc(collection(db, "artworks", artworkId, "comments"), {
+    authorId,
+    authorUsername,
+    authorAvatar: authorAvatar || null,
+    text,
+    createdAt: serverTimestamp(),
+  });
+
+  // עדכון מונה התגובות ביצירה
+  await updateDoc(doc(db, "artworks", artworkId), {
+    commentsCount: increment(1),
+  });
+
+  // יצירת התראה לבעל היצירה
+  const artworkSnap = await getDoc(doc(db, "artworks", artworkId));
+  if (artworkSnap.exists()) {
+    const artwork = artworkSnap.data();
+    const { createNotification } = await import("../services/notifications.api");
+    
+    await createNotification({
+      userId: artwork.authorId,
+      type: "comment_artwork",
+      fromUserId: authorId,
+      fromUsername: authorUsername,
+      fromUserAvatar: authorAvatar,
+      targetId: artworkId,
+      targetTitle: artwork.title,
+      commentText: text.substring(0, 100), // רק 100 תווים ראשונים
+    });
+  }
+
+  return docRef.id;
+}
+
+/**
+ * מחיקת תגובה מיצירה
+ * @param {string} artworkId - מזהה היצירה
+ * @param {string} commentId - מזהה התגובה
+ */
+export async function deleteArtworkComment(artworkId, commentId) {
+  const { deleteDoc, updateDoc, increment } = await import("firebase/firestore");
+  
+  await deleteDoc(doc(db, "artworks", artworkId, "comments", commentId));
+
+  // עדכון מונה
+  await updateDoc(doc(db, "artworks", artworkId), {
+    commentsCount: increment(-1),
+  });
+}
+
+/**
+ * טוגל לייק ליצירה (אם יש - מוריד, אם אין - מוסיף)
+ * @param {string} artworkId - מזהה היצירה
+ * @param {string} uid - מזהה המשתמש
+ * @param {Object} userData - נתוני המשתמש להתראה (אופציונלי)
+ * @returns {Promise<boolean>} האם היצירה מקבלת לייק כעת
+ */
+export async function toggleArtworkLike(artworkId, uid, userData = null) {
+  const { setDoc, deleteDoc, updateDoc, increment, serverTimestamp } = await import("firebase/firestore");
+  
+  const likeRef = doc(db, "artworks", artworkId, "likes", uid);
+  const likeSnap = await getDoc(likeRef);
+
+  if (likeSnap.exists()) {
+    // הסרת לייק
+    await deleteDoc(likeRef);
+    await updateDoc(doc(db, "artworks", artworkId), {
+      likesCount: increment(-1),
+    });
+    return false;
+  } else {
+    // הוספת לייק
+    await setDoc(likeRef, {
+      createdAt: serverTimestamp(),
+    });
+    await updateDoc(doc(db, "artworks", artworkId), {
+      likesCount: increment(1),
+    });
+
+    // יצירת התראה לבעל היצירה
+    if (userData) {
+      const artworkSnap = await getDoc(doc(db, "artworks", artworkId));
+      if (artworkSnap.exists()) {
+        const artwork = artworkSnap.data();
+        const { createNotification } = await import("../services/notifications.api");
+        
+        await createNotification({
+          userId: artwork.authorId,
+          type: "like_artwork",
+          fromUserId: uid,
+          fromUsername: userData.username,
+          fromUserAvatar: userData.avatarUrl,
+          targetId: artworkId,
+          targetTitle: artwork.title,
+        });
+      }
+    }
+
+    return true;
+  }
+}
