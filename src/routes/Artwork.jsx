@@ -1,7 +1,7 @@
 // src/routes/Artwork.jsx
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { getArtworkBySlugOrId, deleteArtwork, hasLikedArtwork, toggleArtworkLike, getArtworkComments, addArtworkComment, deleteArtworkComment } from "../lib/queries";
+import { getArtworkBySlugOrId, deleteArtwork, hasLikedArtwork, toggleArtworkLike, getArtworkComments, addArtworkComment, deleteArtworkComment, incrementArtworkViews } from "../lib/queries";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
@@ -16,6 +16,13 @@ export default function Artwork(){
   const { data:art } = useQuery({ queryKey:["art",slugOrId], queryFn:()=>getArtworkBySlugOrId(slugOrId) });
   const { userProfile } = useAuth();
   const queryClient = useQueryClient();
+  
+  // ספירת צפייה פעם אחת בלבד
+  useEffect(() => {
+    if (art?.id) {
+      incrementArtworkViews(art.id);
+    }
+  }, [art?.id]);
   
   // טוען תגובות
   const { data: comments = [], isLoading: commentsLoading } = useQuery({
@@ -274,6 +281,9 @@ export default function Artwork(){
               >
                 <span aria-hidden="true">{liked ? "❤️" : "🤍"}</span> {likeCount}
               </button>
+              <span className="text-muted ms-3">
+                <span aria-hidden="true">👁️</span> {art.viewsCount || 0} צפיות
+              </span>
             </div>
             
             <div className="d-flex flex-wrap gap-2">{art.tags?.map(t=><span key={t} className="badge bg-secondary">{t}</span>)}</div>

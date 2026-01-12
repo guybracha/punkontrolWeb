@@ -1,7 +1,7 @@
 import { db } from "../firebase";
 import {
   collection, query, where, orderBy, limit, getDocs,
-  doc, getDoc
+  doc, getDoc, updateDoc, increment
 } from "firebase/firestore";
 
 // ========== POSTS (TUMBLR-STYLE) ==========
@@ -374,5 +374,19 @@ export async function toggleArtworkLike(artworkId, uid, userData = null) {
     }
 
     return true;
+  }
+}
+
+/**
+ * מעדכן מונה צפיות ביצירה
+ */
+export async function incrementArtworkViews(artworkId) {
+  try {
+    const artworkRef = doc(db, "artworks", artworkId);
+    await updateDoc(artworkRef, {
+      viewsCount: increment(1),
+    });
+  } catch (error) {
+    console.error("Error incrementing artwork views:", error);
   }
 }

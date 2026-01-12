@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getPostById, getComments, addComment, toggleLike, hasLiked, updatePost, deletePost } from "../services/posts.api";
+import { getPostById, getComments, addComment, toggleLike, hasLiked, updatePost, deletePost, incrementPostViews } from "../services/posts.api";
 import { useAuth } from "../context/AuthContext";
 import { formatRelativeTime } from "../lib/dateUtils";
 import SEO from "../components/SEO";
@@ -21,6 +21,13 @@ export default function Post() {
   const [editForm, setEditForm] = useState({ title: "", body: "", tags: "" });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // ספירת צפייה פעם אחת בלבד
+  useEffect(() => {
+    if (postId) {
+      incrementPostViews(postId);
+    }
+  }, [postId]);
 
   // טוען פוסט ותגובות
   useEffect(() => {
@@ -300,6 +307,7 @@ export default function Post() {
             ❤️ {post.counts?.likes || 0}
           </button>
           <span className="text-muted">💬 {post.counts?.comments || 0} תגובות</span>
+          <span className="text-muted">👁️ {post.counts?.views || 0} צפיות</span>
         </div>
         
         {/* Share Buttons */}

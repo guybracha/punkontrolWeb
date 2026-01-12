@@ -47,6 +47,14 @@ export default function Home(){
         keywords={['אמנות', 'יצירות', 'פאנק', 'אמנים ישראלים', 'גלריה', 'ציור', 'עיצוב']}
       />
       <div className="container py-4">
+      {/* הודעת ברוכים הבאים */}
+      <div className="text-center mb-5">
+        <h1 className="display-4 mb-3">ברוכים הבאים ל-Punkontrol 🎨</h1>
+        <p className="lead text-muted">
+          פלטפורמה ישראלית לשיתוף אמנות ויצירות מקוריות. גלו אמנים מוכשרים, שתפו את היצירות שלכם ותהיו חלק מקהילת האמנות הפועמת שלנו
+        </p>
+      </div>
+      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>תוכן אחרון</h1>
         

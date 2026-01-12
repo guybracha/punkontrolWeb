@@ -277,4 +277,16 @@ export async function toggleLike(postId, uid) {
   }
 }
 
-
+/**
+ * מעדכן מונה צפיות בפוסט
+ */
+export async function incrementPostViews(postId) {
+  try {
+    const postRef = doc(db, "posts", postId);
+    await updateDoc(postRef, {
+      "counts.views": increment(1),
+    });
+  } catch (error) {
+    console.error("Error incrementing post views:", error);
+  }
+}

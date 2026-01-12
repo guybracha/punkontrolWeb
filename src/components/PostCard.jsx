@@ -64,8 +64,8 @@ export default function PostCard({ post }) {
         </div>
         
         {/* סטטיסטיקות */}
-        <div className="text-muted small mt-2" aria-label={`${counts.likes || 0} לייקים, ${counts.comments || 0} תגובות`}>
-          <span aria-hidden="true">❤️</span> {counts.likes || 0} <span aria-hidden="true">·</span> <span aria-hidden="true">💬</span> {counts.comments || 0}
+        <div className="text-muted small mt-2" aria-label={`${counts.likes || 0} לייקים, ${counts.comments || 0} תגובות, ${counts.views || 0} צפיות`}>
+          <span aria-hidden="true">❤️</span> {counts.likes || 0} <span aria-hidden="true">·</span> <span aria-hidden="true">💬</span> {counts.comments || 0} <span aria-hidden="true">·</span> <span aria-hidden="true">👁️</span> {counts.views || 0}
         </div>
       </div>
     </article>

@@ -28,6 +28,11 @@ export default function ArtworkCard({ art }) {
           />
         </div>
         <Link to={`/u/${art.authorUsername}`} className="text-muted small" aria-label={`פרופיל של ${art.authorUsername}`}>@{art.authorUsername}</Link>
+        
+        {/* סטטיסטיקות */}
+        <div className="text-muted small mt-2">
+          <span aria-hidden="true">❤️</span> {art.likesCount || 0} <span aria-hidden="true">·</span> <span aria-hidden="true">👁️</span> {art.viewsCount || 0}
+        </div>
       </div>
     </article>
   );
