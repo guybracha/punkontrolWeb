@@ -1,5 +1,7 @@
 // src/components/ArtworkCard.jsx
 import { Link } from "react-router-dom";
+import ShareButton from "./ShareButton";
+
 export default function ArtworkCard({ art }) {
   const imageUrl = art.imageUrl || "https://placehold.co/400x300?text=%D7%90%D7%99%D7%9F+%D7%AA%D7%9E%D7%95%D7%A0%D7%94";
   
@@ -17,8 +19,15 @@ export default function ArtworkCard({ art }) {
         />
       </Link>
       <div className="card-body">
-        <h6 className="card-title mb-1">{art.title}</h6>
-        <Link to={`/u/${art.authorUsername}`} className="text-muted" aria-label={`פרופיל של ${art.authorUsername}`}>@{art.authorUsername}</Link>
+        <div className="d-flex justify-content-between align-items-start mb-2">
+          <h6 className="card-title mb-0">{art.title}</h6>
+          <ShareButton 
+            url={`/art/${art.slug || art.id}`}
+            title={art.title}
+            description={art.description}
+          />
+        </div>
+        <Link to={`/u/${art.authorUsername}`} className="text-muted small" aria-label={`פרופיל של ${art.authorUsername}`}>@{art.authorUsername}</Link>
       </div>
     </article>
   );

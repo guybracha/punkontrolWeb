@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useInfiniteFeed } from "../hooks/useInfiniteFeed";
 import PostCard from "../components/PostCard";
+import SEO from "../components/SEO";
 
 /**
  * עמוד Feed עם פגינציה אינסופית (Tumblr-style)
@@ -22,7 +23,12 @@ export default function Feed() {
   }, [items.length, loading, loadMore]);
 
   return (
-    <div className="container py-4">
+    <>
+      <SEO 
+        title="Feed - פיד תוכן"
+        description="עקוב אחר הפוסטים והיצירות האחרונות מהאמנים שאתה אוהב"
+      />
+      <div className="container py-4">
       <h1 className="mb-4"><span aria-hidden="true">📰</span> Feed</h1>
 
       {/* שגיאה */}
@@ -64,5 +70,6 @@ export default function Feed() {
         )}
       </div>
     </div>
+    </>
   );
 }

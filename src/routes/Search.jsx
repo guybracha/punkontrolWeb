@@ -6,6 +6,7 @@ import ArtworkCard from "../components/ArtworkCard";
 import PostCard from "../components/PostCard";
 import UserCard from "../components/UserCard";
 import CategoryPicker from "../components/CategoryPicker";
+import SEO from "../components/SEO";
 import { useState } from "react";
 
 export default function Search(){
@@ -84,7 +85,12 @@ export default function Search(){
   }
   
   return (
-    <div className="container py-4">
+    <>
+      <SEO 
+        title={q ? `חיפוש: ${q}` : "חיפוש"}
+        description={q ? `תוצאות חיפוש עבור "${q}" - יצירות, פוסטים ומשתמשים` : "חפש יצירות אמנות, פוסטים ומשתמשים"}
+      />
+      <div className="container py-4">
       <h1>תוצאות חיפוש</h1>
       {q && <p className="text-muted mb-3">מחפש את: "{q}"</p>}
       
@@ -176,5 +182,6 @@ export default function Search(){
         </div>
       )}
     </div>
+    </>
   );
 }

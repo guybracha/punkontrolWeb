@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { formatRelativeTime } from "../lib/dateUtils";
+import ShareButton from "./ShareButton";
 
 /**
  * כרטיס פוסט - תומך בפוסטי טקסט, אמנות וקומיקס
@@ -27,10 +28,15 @@ export default function PostCard({ post }) {
 
       <div className="card-body">
         {/* סוג */}
-        <div className="mb-2">
+        <div className="mb-2 d-flex justify-content-between align-items-start">
           <span className={`badge ${getTypeBadgeColor(type)}`}>
             {getTypeLabel(type)}
           </span>
+          <ShareButton 
+            url={`/post/${id}`}
+            title={title}
+            description={body?.substring(0, 100)}
+          />
         </div>
 
         {/* כותרת */}

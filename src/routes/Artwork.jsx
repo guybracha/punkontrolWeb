@@ -7,6 +7,8 @@ import { useAuth } from "../context/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { formatRelativeTime } from "../lib/dateUtils";
+import SEO from "../components/SEO";
+import ShareButtons from "../components/ShareButtons";
 
 export default function Artwork(){
   const { slugOrId } = useParams();
@@ -195,6 +197,15 @@ export default function Artwork(){
   
   return (
     <>
+      <SEO 
+        title={art.title}
+        description={art.description || `יצירת אמנות מאת ${art.authorUsername}`}
+        image={art.imageUrl}
+        url={`https://punkontrol.web.app/art/${art.slug || art.id}`}
+        type="article"
+        author={art.authorUsername}
+        keywords={art.tags || []}
+      />
       <div className="container py-4">
         <div className="row g-4">
           <div className="col-md-7">
@@ -266,6 +277,16 @@ export default function Artwork(){
             </div>
             
             <div className="d-flex flex-wrap gap-2">{art.tags?.map(t=><span key={t} className="badge bg-secondary">{t}</span>)}</div>
+            
+            {/* Share Buttons */}
+            <div className="mt-3 pt-3 border-top">
+              <ShareButtons 
+                url={`/art/${art.slug || art.id}`}
+                title={art.title}
+                description={art.description}
+                type="יצירה"
+              />
+            </div>
           </div>
         </div>
 

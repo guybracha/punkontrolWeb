@@ -6,6 +6,7 @@ import { getUserPosts } from "../services/posts.api";
 import ArtworkCard from "../components/ArtworkCard";
 import PostCard from "../components/PostCard";
 import FollowButton from "../components/FollowButton";
+import SEO from "../components/SEO";
 import { auth, db, storage } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -164,8 +165,18 @@ export default function Profile() {
     );
   }
 
+  const userDescription = user.bio || `פרופיל של ${user.displayName || user.username} ב-Punkontrol`;
+  
   return (
-    <div className="container py-4">
+    <>
+      <SEO 
+        title={`${user.displayName || user.username} (@${user.username})`}
+        description={userDescription}
+        image={user.avatarUrl}
+        url={`https://punkontrol.web.app/u/${user.username}`}
+        type="profile"
+      />
+      <div className="container py-4">
       {/* Profile Header */}
       <header className="profile-header mb-4">
         <div className="profile-header-content">
@@ -426,5 +437,6 @@ export default function Profile() {
         </div>
       )}
     </div>
+    </>
   );
 }

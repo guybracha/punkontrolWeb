@@ -1,0 +1,133 @@
+/* Share Buttons Styling */
+.share-buttons {
+  padding: 0.5rem 0;
+}
+
+.share-buttons .btn {
+  transition: all 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.share-buttons .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.share-buttons .btn-outline-primary:hover {
+  background-color: #1877f2;
+  border-color: #1877f2;
+  color: white;
+}
+
+.share-buttons .btn-outline-dark:hover {
+  background-color: #000000;
+  border-color: #000000;
+  color: white;
+}
+
+.share-buttons .btn-outline-success:hover {
+  background-color: #25d366;
+  border-color: #25d366;
+  color: white;
+}
+
+.share-buttons .btn-outline-secondary:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.share-buttons .btn-success {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.share-buttons svg {
+  flex-shrink: 0;
+}
+
+/* Share Button Dropdown */
+.share-button-dropdown {
+  display: inline-block;
+}
+
+.share-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.share-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  z-index: 1001;
+  min-width: 180px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.share-menu .dropdown-item {
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  transition: background-color 0.15s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.share-menu .dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.share-menu hr {
+  margin: 0.25rem 0;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .share-buttons {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  
+  .share-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .share-menu {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

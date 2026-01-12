@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getLatestArtworks, getLatestPosts } from "../lib/queries";
 import ArtworkCard from "../components/ArtworkCard";
 import PostCard from "../components/PostCard";
+import SEO from "../components/SEO";
 import { useState } from "react";
 
 export default function Home(){
@@ -39,7 +40,13 @@ export default function Home(){
                          posts.map(p=>({...p, contentType: 'post'}));
   
   return (
-    <div className="container py-4">
+    <>
+      <SEO 
+        title="דף הבית"
+        description="גלה אמנות ויצירות מקוריות מאמנים ישראלים. פלטפורמת שיתוף אמנות Punkontrol"
+        keywords={['אמנות', 'יצירות', 'פאנק', 'אמנים ישראלים', 'גלריה', 'ציור', 'עיצוב']}
+      />
+      <div className="container py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>תוכן אחרון</h1>
         
@@ -93,5 +100,6 @@ export default function Home(){
         </div>
       )}
     </div>
+    </>
   );
 }

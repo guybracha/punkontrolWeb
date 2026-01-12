@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPostById, getComments, addComment, toggleLike, hasLiked, updatePost, deletePost } from "../services/posts.api";
 import { useAuth } from "../context/AuthContext";
 import { formatRelativeTime } from "../lib/dateUtils";
+import SEO from "../components/SEO";
+import ShareButtons from "../components/ShareButtons";
 
 export default function Post() {
   const { postId } = useParams();
@@ -190,8 +192,20 @@ export default function Post() {
     );
   }
 
+  const postPreview = post.body?.substring(0, 160) || '';
+
   return (
-    <div className="container py-4" style={{ maxWidth: 800 }}>
+    <>
+      <SEO 
+        title={post.title}
+        description={postPreview}
+        image={post.imageUrl}
+        url={`https://punkontrol.web.app/post/${postId}`}
+        type="article"
+        author={post.authorUsername}
+        keywords={post.tags || []}
+      />
+      <div className="container py-4" style={{ maxWidth: 800 }}>
       {/* כותרת */}
       <div className="d-flex justify-content-between align-items-start mb-3">
         <h1 className="mb-0">{post.title}</h1>
@@ -275,16 +289,26 @@ export default function Post() {
 
       <hr />
 
-      {/* לייק */}
-      <div className="d-flex align-items-center gap-3 mb-4">
-        <button
-          className={`btn ${liked ? "btn-danger" : "btn-outline-danger"}`}
-          onClick={handleLike}
-          disabled={!userProfile}
-        >
-          ❤️ {post.counts?.likes || 0}
-        </button>
-        <span className="text-muted">💬 {post.counts?.comments || 0} תגובות</span>
+      {/* לייק ושיתוף */}
+      <div className="d-flex flex-column gap-3 mb-4">
+        <div className="d-flex align-items-center gap-3">
+          <button
+            className={`btn ${liked ? "btn-danger" : "btn-outline-danger"}`}
+            onClick={handleLike}
+            disabled={!userProfile}
+          >
+            ❤️ {post.counts?.likes || 0}
+          </button>
+          <span className="text-muted">💬 {post.counts?.comments || 0} תגובות</span>
+        </div>
+        
+        {/* Share Buttons */}
+        <ShareButtons 
+          url={`/post/${postId}`}
+          title={post.title}
+          description={post.body?.substring(0, 160)}
+          type="פוסט"
+        />
       </div>
 
       <hr />
@@ -457,5 +481,6 @@ export default function Post() {
         </div>
       )}
     </div>
+    </>
   );
 }
