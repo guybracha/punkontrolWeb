@@ -44,9 +44,9 @@ if (typeof window !== 'undefined') {
   });
 }
 
-const analytics = getAnalytics(app);
+export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
-await setPersistence(auth, browserLocalPersistence);
+setPersistence(auth, browserLocalPersistence);
 auth.useDeviceLanguage();
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
